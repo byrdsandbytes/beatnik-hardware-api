@@ -53,8 +53,8 @@ export class ConfigService {
     for (const line of lines) {
       let keepLine = true;
       
-      // Entferne existierende HiFiBerry overlays
-      if (line.trim().startsWith('dtoverlay=hifiberry')) {
+      // Entferne existierende HiFiBerry und IQaudIO overlays
+      if (line.trim().startsWith('dtoverlay=hifiberry') || line.trim().startsWith('dtoverlay=iqaudio')) {
         keepLine = false;
       }
       
