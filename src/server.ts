@@ -1,8 +1,14 @@
 import Fastify from 'fastify';
+import cors from '@fastify/cors';
 import { audioRoutes } from './routes/audio';
 
 const server = Fastify({
   logger: true
+});
+
+// CORS aktivieren
+server.register(cors, { 
+  origin: true // Erlaubt alle Origins (für Entwicklung ok, später einschränken)
 });
 
 // Routen registrieren
