@@ -53,6 +53,16 @@ export const SUPPORTED_HATS: Record<string, HatProfile> = {
       format: 'S24LE3'
     }
   },
+  'iqaudio-dacplus': {
+    id: 'iqaudio-dacplus',
+    name: 'IQaudIO Pi-DAC PRO / DAC+',
+    overlay: 'dtoverlay=iqaudio-dacplus',
+    eepromMatch: 'Pi-DAC PRO',
+    camilla: {
+      device: 'hw:1,0',
+      format: 'S32LE'
+    }
+  },
   'usb-dac': {
     id: 'usb-dac',
     name: 'Generic USB DAC',
