@@ -63,6 +63,16 @@ export const SUPPORTED_HATS: Record<string, HatProfile> = {
       format: 'S32LE'
     }
   },
+  'rpi-digiamp-plus': {
+    id: 'rpi-digiamp-plus',
+    name: 'Raspberry Pi DigiAMP+',
+    overlay: 'dtoverlay=iqaudio-digiamp-plus,unmute_amp',
+    eepromMatch: 'Raspberry Pi DigiAMP+',
+    camilla: {
+      device: 'hw:1,0',
+      format: 'S32LE'
+    }
+  },
   'usb-dac': {
     id: 'usb-dac',
     name: 'Generic USB DAC',
