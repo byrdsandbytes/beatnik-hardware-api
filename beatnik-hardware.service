@@ -6,7 +6,10 @@ After=network.target
 # Muss als Root laufen für /boot/config.txt Zugriff
 User=root
 WorkingDirectory=/opt/beatnik-hardware-api
-ExecStart=/usr/bin/npm start
+# WICHTIG: Bei NVM Installation muss der direkte Pfad zu 'node' genutzt werden,
+# da 'npm' oft 'node' im System-Pfad nicht findet (Error 127).
+# Pfad aus dem Error-Log abgeleitet:
+ExecStart=/home/byrds/.nvm/versions/node/v22.21.0/bin/node dist/server.js
 Restart=always
 Environment=NODE_ENV=production
 # Optional: Pfad zur config.txt überschreiben falls nötig
