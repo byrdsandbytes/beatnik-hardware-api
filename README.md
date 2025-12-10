@@ -32,7 +32,21 @@ nvm install 20
 nvm use 20
 ```
 
-## 🚀 Installation on Raspberry Pi
+## 🚀 Quick Installation (Recommended)
+
+You can install the entire service (including Node.js, dependencies, and systemd setup) with a single script.
+
+```bash
+wget https://raw.githubusercontent.com/byrdsandbytes/beatnik-hardware-api/master/setup.sh
+chmod +x setup.sh
+./setup.sh
+```
+
+Follow the prompts on the screen. The script will ask for your `sudo` password to install the system service.
+
+## 🛠 Manual Installation
+
+If you prefer to install everything manually, follow these steps:
 
 ### 1. Clone Repository
 We recommend installing in the `/opt/` directory.
@@ -44,29 +58,26 @@ cd beatnik-hardware-api
 ```
 
 ### 2. Install Dependencies
-Since we are using `nvm`, run `npm` without `sudo` (assuming the current user has write permissions or we are using root). If you are working as a normal user in `/opt`, you may need to adjust permissions: `sudo chown -R $USER:$USER /opt/beatnik-hardware-api`.
+Since we are using `nvm`, run `npm` without `sudo`.
 
 ```bash
 npm install
 ```
 
-### 3. Build Project (Compile TypeScript)
-Since the source code is written in TypeScript, it must be compiled to JavaScript before execution.
-
+### 3. Build Project
 ```bash
 npm run build
 ```
-After this step, a `dist/` folder should exist in the directory.
 
-## ⚙️ Setup as System Service (Autostart)
+## ⚙️ Setup as System Service (Manual)
 
-To ensure the service starts automatically at boot and (importantly!) has the necessary root privileges, we set it up as a systemd service.
+If you didn't use the setup script:
 
 ### 1. Copy Service File
 ```bash
 sudo cp beatnik-hardware.service /etc/systemd/system/
 ```
-**Important:** If you installed Node.js via `nvm`, you must adjust the path to `npm` in the file `/etc/systemd/system/beatnik-hardware.service` (as `/usr/bin/npm` might not exist). Find your path with `which npm` and enter it in the service file at `ExecStart`.
+**Important:** Adjust the `ExecStart` path in `/etc/systemd/system/beatnik-hardware.service` to point to your Node.js executable (find it with `which node`).
 
 ### 2. Enable and Start Service
 ```bash
