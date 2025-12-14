@@ -19,18 +19,24 @@ export class DetectionService {
       // Null-Bytes und Whitespace entfernen
       const productName = productNameRaw.replace(/\0/g, '').trim();
       
-      console.log(`Hardware Detection: Found EEPROM Product: "${productName}"`);
+      console.log(`[Detection] Found EEPROM Product: "${productName}"`);
 
       // 3. In unserer Liste suchen
       for (const hat of Object.values(SUPPORTED_HATS)) {
         if (hat.eepromMatch && productName.includes(hat.eepromMatch)) {
+          console.log(`[Detection] Match found: ${hat.id} (${hat.name})`);
           return hat;
         }
       }
       
+      console.warn(`[Detection] Unknown HAT: "${productName}" - No matching profile found.`);
       return null; // HAT da, aber nicht in unserer Liste
-    } catch (e) {
-      // Kein HAT erkannt oder Datei nicht lesbar (Normalfall bei USB oder keinem HAT)
+    } catch (e: any) {
+      if (e.code === 'ENOENT') {
+        console.log('[Detection] No HAT EEPROM detected.');
+      } else {
+        console.error('[Detection] Error reading HAT info:', e.message);
+      }
       return null; 
     }
   }
