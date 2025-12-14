@@ -20,15 +20,17 @@ export async function audioRoutes(fastify: FastifyInstance) {
   // GET /api/hardware/status
   // Gibt zurück: Was ist eingestellt? Was wurde erkannt?
   fastify.get('/status', async () => {
-    const [active, detected] = await Promise.all([
+    const [active, detected, eepromDisabled] = await Promise.all([
       configService.getActiveConfig(),
-      detectionService.detectConnectedHat()
+      detectionService.detectConnectedHat(),
+      configService.isEepromReadDisabled()
     ]);
 
     return {
       currentConfig: active,
       detectedHardware: detected,
-      isMatch: active?.id === detected?.id
+      isMatch: active?.id === detected?.id,
+      eepromReadDisabled: eepromDisabled
     };
   });
 

@@ -39,6 +39,18 @@ export class ConfigService {
   }
 
   /**
+   * Prüft ob force_eeprom_read=0 gesetzt ist
+   */
+  async isEepromReadDisabled(): Promise<boolean> {
+    try {
+      const content = await fs.readFile(CONFIG_PATH, 'utf-8');
+      return content.includes('force_eeprom_read=0');
+    } catch {
+      return false;
+    }
+  }
+
+  /**
    * Schreibt die neue Konfiguration in die config.txt
    */
   async setHat(hatId: string): Promise<void> {
