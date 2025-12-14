@@ -26,7 +26,8 @@ export const SUPPORTED_HATS: Record<string, HatProfile> = {
   'hifiberry-dacplus': {
     id: 'hifiberry-dacplus',
     name: 'HiFiBerry DAC+ Pro / ADC',
-    overlay: 'dtoverlay=hifiberry-dacplus',
+    // Kernel >= 6.1.77 requires specific overlays
+    overlay: 'dtoverlay=hifiberry-dacplus,slave', 
     eepromMatch: 'HiFiBerry DAC+',
     camilla: {
       device: 'hw:1,0',
@@ -36,8 +37,19 @@ export const SUPPORTED_HATS: Record<string, HatProfile> = {
   'hifiberry-amp': {
     id: 'hifiberry-amp',
     name: 'HiFiBerry Amp2 / Amp4',
-    overlay: 'dtoverlay=hifiberry-amp',
+    // Kernel >= 6.1.77 requires hifiberry-dacplus-std for Amp2
+    overlay: 'dtoverlay=hifiberry-dacplus-std',
     eepromMatch: 'HiFiBerry Amp',
+    camilla: {
+      device: 'hw:1,0',
+      format: 'S32LE'
+    }
+  },
+  'hifiberry-amp4pro': {
+    id: 'hifiberry-amp4pro',
+    name: 'HiFiBerry Amp4 Pro',
+    overlay: 'dtoverlay=hifiberry-amp4pro',
+    eepromMatch: 'HiFiBerry Amp4 Pro',
     camilla: {
       device: 'hw:1,0',
       format: 'S32LE'
