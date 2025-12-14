@@ -21,12 +21,21 @@ export class DetectionService {
       
       console.log(`[Detection] Found EEPROM Product: "${productName}"`);
 
-      // 3. In unserer Liste suchen
+      // 3. In unserer Liste suchen (Best Match / Longest Match)
+      let bestMatch: HatProfile | null = null;
+
       for (const hat of Object.values(SUPPORTED_HATS)) {
         if (hat.eepromMatch && productName.includes(hat.eepromMatch)) {
-          console.log(`[Detection] Match found: ${hat.id} (${hat.name})`);
-          return hat;
+          // Wenn wir noch keinen Match haben, oder dieser Match spezifischer (länger) ist
+          if (!bestMatch || (hat.eepromMatch.length > (bestMatch.eepromMatch?.length || 0))) {
+            bestMatch = hat;
+          }
         }
+      }
+
+      if (bestMatch) {
+        console.log(`[Detection] Match found: ${bestMatch.id} (${bestMatch.name})`);
+        return bestMatch;
       }
       
       console.warn(`[Detection] Unknown HAT: "${productName}" - No matching profile found.`);
