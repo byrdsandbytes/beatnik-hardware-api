@@ -18,14 +18,19 @@ export class CamillaService {
             const fileContent = await fs.readFile(CAMILLA_CONFIG_PATH, 'utf-8');
             const config = yaml.load(fileContent) as any;
 
-            if (!config.playback) config.playback = {};
+            // Ensure devices structure exists
+            if (!config.devices) config.devices = {};
+            if (!config.devices.playback) config.devices.playback = {};
 
-            // Update nur der relevanten Hardware-Parameter
-            config.playback.device = targetHat.camilla.device;
-            config.playback.format = targetHat.camilla.format;
+            // Update hardware parameters in devices.playback (correct location)
+            config.devices.playback.device = targetHat.camilla.device;
+            config.devices.playback.format = targetHat.camilla.format;
+
+            // Remove incorrect top-level playback if it exists (cleanup from previous bug)
+            if (config.playback) delete config.playback;
 
             if (targetHat.camilla.channels) {
-                config.playback.channels = targetHat.camilla.channels;
+                config.devices.playback.channels = targetHat.camilla.channels;
             }
 
             // YAML schreiben (mit breitem Limit um Umbrüche zu vermeiden)
