@@ -42,7 +42,14 @@ export class DetectionService {
       return null; // HAT da, aber nicht in unserer Liste
     } catch (e: any) {
       if (e.code === 'ENOENT') {
-        console.log('[Detection] No HAT EEPROM detected.');
+        console.log(`[Detection] No HAT EEPROM detected at ${HAT_PRODUCT_PATH}.`);
+        // Optional: Check if /proc/device-tree/hat exists at all
+        try {
+            await fs.access('/proc/device-tree/hat');
+            console.log('[Detection] /proc/device-tree/hat exists, but product file is missing.');
+        } catch {
+            console.log('[Detection] /proc/device-tree/hat directory does not exist.');
+        }
       } else {
         console.error('[Detection] Error reading HAT info:', e.message);
       }
