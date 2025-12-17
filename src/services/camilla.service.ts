@@ -2,7 +2,7 @@ import fs from 'fs/promises';
 import yaml from 'js-yaml';
 import { SUPPORTED_HATS } from '../types/hats';
 
-const CAMILLA_CONFIG_PATH = process.env.CAMILLA_CONFIG_PATH || '/home/byrds/camilladsp/configs/client_config.yml';
+const CAMILLA_CONFIG_PATH = process.env.CAMILLA_CONFIG_PATH || '/home/beatnik/camilladsp/configs/client_config.yml';
 
 export class CamillaService {
 
