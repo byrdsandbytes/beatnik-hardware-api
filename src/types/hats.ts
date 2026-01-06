@@ -19,7 +19,7 @@ export const SUPPORTED_HATS: Record<string, HatProfile> = {
     overlay: 'dtoverlay=hifiberry-dac',
     eepromMatch: 'HiFiBerry DAC',
     camilla: {
-      device: 'hw:1,0',
+      device: 'plughw:CARD=sndrpihifiberry,DEV=0',
       format: 'S32LE'
     }
   },
@@ -30,7 +30,7 @@ export const SUPPORTED_HATS: Record<string, HatProfile> = {
     overlay: 'dtoverlay=hifiberry-dacplus,slave', 
     eepromMatch: 'HiFiBerry DAC+',
     camilla: {
-      device: 'hw:1,0',
+      device: 'plughw:CARD=sndrpihifiberry,DEV=0',
       format: 'S32LE'
     }
   },
@@ -41,7 +41,7 @@ export const SUPPORTED_HATS: Record<string, HatProfile> = {
     overlay: 'dtoverlay=hifiberry-dacplus-std',
     eepromMatch: 'HiFiBerry Amp',
     camilla: {
-      device: 'hw:1,0',
+      device: 'plughw:CARD=sndrpihifiberry,DEV=0',
       format: 'S32LE'
     }
   },
@@ -51,7 +51,7 @@ export const SUPPORTED_HATS: Record<string, HatProfile> = {
     overlay: 'dtoverlay=hifiberry-amp4pro',
     eepromMatch: 'HiFiBerry Amp4 Pro',
     camilla: {
-      device: 'hw:1,0',
+      device: 'plughw:CARD=sndrpihifiberry,DEV=0',
       format: 'S32LE'
     }
   },
@@ -61,7 +61,7 @@ export const SUPPORTED_HATS: Record<string, HatProfile> = {
     overlay: 'dtoverlay=hifiberry-digi',
     eepromMatch: 'HiFiBerry Digi',
     camilla: {
-      device: 'hw:1,0',
+      device: 'plughw:CARD=sndrpihifiberry,DEV=0',
       format: 'S24LE3'
     }
   },
