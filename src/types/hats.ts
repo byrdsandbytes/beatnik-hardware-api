@@ -215,7 +215,7 @@ export const SUPPORTED_HATS: Record<string, HatProfile> = {
     name: 'No HAT (Headphone Jack)',
     overlay: '# No HAT configured',
     camilla: {
-      device: 'hw:0,0',
+      device: 'plughw:CARD=Headphones,DEV=0',
       format: 'S16LE'
     }
   }
