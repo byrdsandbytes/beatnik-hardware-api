@@ -170,6 +170,16 @@ export const SUPPORTED_HATS: Record<string, HatProfile> = {
 
   // --- Others ---
 
+  'rpi-hdmi0': {
+    id: 'rpi-hdmi0',
+    name: 'Raspberry Pi HDMI 0',
+    overlay: '# Beatnik HDMI0',
+    camilla: {
+      device: 'hw:CARD=vc4hdmi0,DEV=0',
+      format: 'S16LE'
+    }
+  },
+
   'iqaudio-dacplus': {
     id: 'iqaudio-dacplus',
     name: 'IQaudIO Pi-DAC PRO / DAC+',
@@ -205,7 +215,7 @@ export const SUPPORTED_HATS: Record<string, HatProfile> = {
     name: 'No HAT (Headphone Jack)',
     overlay: '# No HAT configured',
     camilla: {
-      device: 'hw:0,0',
+      device: 'plughw:CARD=Headphones,DEV=0',
       format: 'S16LE'
     }
   }
