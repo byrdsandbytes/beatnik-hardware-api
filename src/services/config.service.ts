@@ -26,7 +26,10 @@ export class ConfigService {
         if (hat.id === 'none' || hat.id === 'usb-dac') continue;
         
         // Prüfen ob Overlay aktiv (nicht auskommentiert)
-        const regex = new RegExp(`^\\s*${hat.overlay}`, 'm');
+        // Regex escaping für den Overlay-String, plus Boundary-Check (Ende oder Trennzeichen)
+        const escapedOverlay = hat.overlay.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regex = new RegExp(`^\\s*${escapedOverlay}(?:$|\\s|,)`, 'm');
+        
         if (regex.test(content)) {
           return hat;
         }
