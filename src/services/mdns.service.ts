@@ -1,51 +1,50 @@
-import { Bonjour } from 'bonjour-service';
+import ciao, { CiaoService } from '@homebridge/ciao';
 import os from 'os';
+import path from 'path';
+import fs from 'fs';
+
+// Helper to read package.json
+const packageJson = JSON.parse(fs.readFileSync(path.join(__dirname, '../../package.json'), 'utf-8'));
 
 export class MdnsService {
-  private bonjour: Bonjour;
-  private service: any;
+    private service: CiaoService | null = null;
 
-  constructor() {
-    this.bonjour = new Bonjour();
-  }
+    /**
+     * Start advertising the service via mDNS using ciao
+     * ciao automatically handles interface binding and robust network advertising
+     */
+    async start(): Promise<void> {
+        const hostname = os.hostname();
+        const version = packageJson.version;
+        
+        console.log(`Starting mDNS advertisement: _beatnik._tcp, Port: 3000, Host: ${hostname}, v${version}`);
 
-  /**
-   * Start advertising the service via mDNS
-   */
-  async start(): Promise<void> {
-    const hostname = os.hostname();
-    console.log(`Starting mDNS advertisement for _beatnik._tcp on port 3000 (Host: ${hostname})`);
-
-    this.service = this.bonjour.publish({
-      name: `Beatnik Hardware API - ${hostname}`,
-      type: 'beatnik',
-      port: 3000,
-      protocol: 'tcp',
-      txt: {
-        version: '0.4.0'
-      }
-    });
-
-    this.service.on('error', (error: Error) => {
-      console.error('mDNS advertisement error:', error);
-    });
-  }
-
-  /**
-   * Stop advertising the service
-   */
-  async stop(): Promise<void> {
-    if (this.service) {
-      console.log('Stopping mDNS advertisement...');
-      return new Promise((resolve) => {
-        this.service.stop(() => {
-          console.log('mDNS advertisement stopped');
-          this.bonjour.destroy();
-          resolve();
+        const responder = ciao.getResponder();
+        
+        this.service = responder.createService({
+            name: `Beatnik Hardware API - ${hostname}`,
+            type: 'beatnik', // ciao automatically expands this to _beatnik._tcp
+            port: 3000,
+            txt: {
+                version
+            }
         });
-      });
+
+        await this.service.advertise();
+        console.log('mDNS service published successfully');
     }
-  }
+
+    /**
+     * Stop advertising the service
+     */
+    async stop(): Promise<void> {
+        if (this.service) {
+            console.log('Stopping mDNS advertisement...');
+            await this.service.end();
+            console.log('mDNS advertisement stopped');
+            this.service = null;
+        }
+    }
 }
 
 export const mdnsService = new MdnsService();
