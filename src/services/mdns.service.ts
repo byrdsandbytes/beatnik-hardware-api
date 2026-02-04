@@ -22,6 +22,7 @@ export class MdnsService {
         const responder = ciao.getResponder();
         
         this.service = responder.createService({
+            hostname: `${hostname}.local`,
             name: `Beatnik Hardware API - ${hostname}`,
             type: 'beatnik', // ciao automatically expands this to _beatnik._tcp
             port: 3000,
