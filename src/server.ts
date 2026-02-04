@@ -2,6 +2,7 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { audioRoutes } from './routes/audio';
 import { snapcastRoutes } from './routes/snapcast';
+import { mdnsService } from './services/mdns.service';
 
 const server = Fastify({
   logger: true
@@ -22,10 +23,23 @@ const start = async () => {
     // Host 0.0.0.0 erlaubt Zugriff vom Controller Container oder LAN
     await server.listen({ port: 3000, host: '0.0.0.0' });
     console.log('🎧 Beatnik Hardware Service is running on port 3000');
+    
+    // Start mDNS advertisement
+    await mdnsService.start();
   } catch (err) {
     server.log.error(err);
     process.exit(1);
   }
 };
+
+// Graceful shutdown
+const shutdown = async () => {
+  console.log('Shutting down...');
+  await mdnsService.stop();
+  process.exit(0);
+};
+
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);
 
 start();
