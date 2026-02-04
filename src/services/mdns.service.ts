@@ -41,12 +41,11 @@ export class MdnsService {
         const mac = this.getMacAddress();
         const version = packageJson.version;
 
-        console.log(`Starting mDNS advertisement: _beatnik._tcp, Port: 3000, Host: ${hostname}, MAC: ${mac}, v${version}`);
+        console.log(`Starting mDNS advertisement: http._tcp, Port: 3000, Host: ${hostname}, MAC: ${mac}, v${version}`);
 
         this.service = this.bonjour.publish({
-            host: hostname,
             name: `Beatnik Hardware API - ${hostname}`,
-            type: 'beatnik',
+            type: 'http',
             port: 3000,
             protocol: 'tcp',
             txt: {
