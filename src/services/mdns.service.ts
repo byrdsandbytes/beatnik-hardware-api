@@ -6,6 +6,50 @@ import os from 'os';
 const AVAHI_SERVICE_DIR = process.env.AVAHI_SERVICE_DIR || '/etc/avahi/services';
 const SERVICE_FILENAME = 'beatnik-hardware.service';
 
+/**
+ * Helper to get the MAC address of the first non-internal network interface
+ */
+function getMacAddress(): string {
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    const iface = interfaces[name];
+    if (!iface) continue;
+    
+    for (const alias of iface) {
+      if (!alias.internal && alias.mac !== '00:00:00:00:00:00') {
+        return alias.mac;
+      }
+    }
+  }
+  return '00:00:00:00:00:00';
+}
+
+/**
+ * Helper to get Raspberry Pi model information
+ */
+async function getPiModel(): Promise<string> {
+  try {
+    // Try to read device tree model (standard on Pi)
+    const modelPath = '/proc/device-tree/model';
+    // Use fs.readFile (async) instead of readFileSync
+    const content = await fs.readFile(modelPath, 'utf8');
+    // Remove null terminator
+    return content.replace(/\0/g, '').trim();
+  } catch (e) {
+    // Ignore errors
+  }
+  return 'Unknown Device';
+}
+
+/**
+ * Helper to get total RAM in GB
+ */
+function getRamSize(): string {
+  const totalMem = os.totalmem();
+  const gb = totalMem / (1024 * 1024 * 1024);
+  return `${gb.toFixed(1)}GB`;
+}
+
 export class MdnsService {
   private serviceFilePath: string;
   private isRunning: boolean = false;
@@ -21,25 +65,35 @@ export class MdnsService {
     if (this.isRunning) return;
     
     const hostname = os.hostname();
-    console.log(`Starting mDNS advertisement for _beatnik._tcp on port 3000 (Host: ${hostname})`);
+    const mac = getMacAddress();
+    const model = await getPiModel();
+    const ram = getRamSize();
+    const version = "0.4.0"; // Hardcoded for now, or read from package.json if imported
+
+    console.log(`Starting mDNS advertisement for _beatnik._tcp on port 3000`);
+    console.log(`Host: ${hostname}, MAC: ${mac}, Model: ${model}, RAM: ${ram}, v${version}`);
     
     // Create the service definition XML
     // Note: %h in the name is replaced by avahi-daemon with the hostname
-    const serviceXml = `<?xml version="1.0" standalone='no'?><!--*-nxml-*-->
-<!DOCTYPE service-group SYSTEM "avahi-service.dtd">
-<service-group>
-  <name replace-wildcards="yes">Beatnik Hardware API - %h</name>
-  <service>
-    <type>_beatnik._tcp</type>
-    <port>3000</port>
-    <txt-record>version=0.4.0</txt-record>
-  </service>
-</service-group>
-`;
+    const list = [
+      `<?xml version="1.0" standalone='no'?><!--*-nxml-*-->`,
+      `<!DOCTYPE service-group SYSTEM "avahi-service.dtd">`,
+      `<service-group>`,
+      `  <name replace-wildcards="yes">Beatnik Hardware API - %h</name>`,
+      `  <service>`,
+      `    <type>_beatnik._tcp</type>`,
+      `    <port>3000</port>`,
+      `    <txt-record>version=${version}</txt-record>`,
+      `    <txt-record>mac=${mac}</txt-record>`,
+      `    <txt-record>model=${model}</txt-record>`,
+      `    <txt-record>ram=${ram}</txt-record>`,
+      `  </service>`,
+      `</service-group>`
+    ].join('\n');
 
     try {
       // Write the service file
-      await fs.writeFile(this.serviceFilePath, serviceXml, 'utf8');
+      await fs.writeFile(this.serviceFilePath, list, 'utf8');
       console.log(`Service definition written to ${this.serviceFilePath}`);
       this.isRunning = true;
     } catch (error: any) {
