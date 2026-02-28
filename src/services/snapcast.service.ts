@@ -51,12 +51,14 @@ export class SnapcastService {
 
   /**
    * Disables the snapserver service from starting on boot and stops it immediately
+   * Also restarts the snapclient so it can immediately search for another server
    */
   async disable(): Promise<void> {
     try {
       await execAsync('sudo systemctl disable --now snapserver');
+      await execAsync('sudo systemctl restart snapclient');
     } catch (error) {
-      console.error('Error disabling snapserver:', error);
+      console.error('Error disabling snapserver or restarting snapclient:', error);
       throw new Error('Failed to disable snapserver');
     }
   }
