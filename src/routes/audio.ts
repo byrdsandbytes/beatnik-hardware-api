@@ -2,12 +2,14 @@ import { FastifyInstance } from 'fastify';
 import { ConfigService } from '../services/config.service';
 import { CamillaService } from '../services/camilla.service';
 import { DetectionService } from '../services/detection.service';
+import { TestSoundService } from '../services/test-sound.service';
 import { SUPPORTED_HATS } from '../types/hats';
 import { exec } from 'child_process';
 
 const configService = new ConfigService();
 const camillaService = new CamillaService();
 const detectionService = new DetectionService();
+const testSoundService = new TestSoundService();
 
 export async function audioRoutes(fastify: FastifyInstance) {
   
@@ -32,6 +34,17 @@ export async function audioRoutes(fastify: FastifyInstance) {
       isMatch: active?.id === detected?.id,
       eepromReadDisabled: eepromDisabled
     };
+  });
+
+  // POST /api/hardware/test-sound
+  fastify.post('/test-sound', async (request, reply) => {
+    try {
+      const result = await testSoundService.playTestSound();
+      return result;
+    } catch (error: any) {
+      request.log.error(error);
+      return reply.code(500).send({ error: error.message || 'Test sound failed' });
+    }
   });
 
   // POST /api/hardware/apply
