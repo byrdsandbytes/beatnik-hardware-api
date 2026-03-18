@@ -67,22 +67,43 @@ export class ConfigService {
     // 1. Alte Konfiguration bereinigen
     for (const line of lines) {
       let keepLine = true;
-      
+      let currentLine = line;
+
+      // Adapt dtoverlay=vc4-kms-v3d depending on HAT selection
+      if (currentLine.trim().startsWith('dtoverlay=vc4-kms-v3d')) {
+        const [configStr, ...comments] = currentLine.split('#');
+        const comment = comments.length > 0 ? ' #' + comments.join('#') : '';
+        
+        // Split by comma
+        let parts = configStr.split(',').map(p => p.trim());
+        const base = parts[0]; 
+
+        // Filter out noaudio
+        let params = parts.slice(1).filter(p => p !== 'noaudio' && p !== '');
+
+        // If NOT rpi-hdmi0, we disable HDMI audio to avoid conflicts
+        if (hatId !== 'rpi-hdmi0') {
+           params.push('noaudio');
+        }
+
+        currentLine = [base, ...params].join(',') + comment;
+      }
+
       // Entferne existierende HiFiBerry und IQaudIO overlays
-      if (line.trim().startsWith('dtoverlay=hifiberry') || line.trim().startsWith('dtoverlay=iqaudio')) {
+      if (currentLine.trim().startsWith('dtoverlay=hifiberry') || currentLine.trim().startsWith('dtoverlay=iqaudio')) {
         keepLine = false;
       }
       
       // Entferne Onboard Audio Settings, um Konflikte zu vermeiden
-      if (line.trim().startsWith('dtparam=audio=')) {
-        newLines.push('# ' + line); // Auskommentieren statt löschen
+      if (currentLine.trim().startsWith('dtparam=audio=')) {
+        newLines.push('# ' + currentLine); // Auskommentieren statt löschen
         keepLine = false;
       }
 
       // Entferne unsere eigenen Markierungen von früher
-      if (line.includes('BEATNIK AUDIO CONFIGURATION')) keepLine = false;
+      if (currentLine.includes('BEATNIK AUDIO CONFIGURATION')) keepLine = false;
 
-      if (keepLine) newLines.push(line);
+      if (keepLine) newLines.push(currentLine);
     }
 
     // 2. Neuen Block hinzufügen
