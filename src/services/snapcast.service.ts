@@ -43,6 +43,13 @@ export class SnapcastService {
   async enable(): Promise<void> {
     try {
       await execAsync('sudo systemctl enable --now snapserver');
+
+      // Also start the beatnik-controller container if it exists
+      try {
+        await execAsync('sudo docker start beatnik-controller');
+      } catch (e) {
+        console.warn('Failed to start beatnik-controller container:', e);
+      }
     } catch (error) {
       console.error('Error enabling snapserver:', error);
       throw new Error('Failed to enable snapserver');
@@ -55,6 +62,13 @@ export class SnapcastService {
    */
   async disable(): Promise<void> {
     try {
+      // Stop the beatnik-controller container first
+      try {
+        await execAsync('sudo docker stop beatnik-controller');
+      } catch (e) {
+        console.warn('Failed to stop beatnik-controller container:', e);
+      }
+
       await execAsync('sudo systemctl disable --now snapserver');
       await execAsync('sudo systemctl restart snapclient');
     } catch (error) {
