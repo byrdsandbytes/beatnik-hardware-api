@@ -5,7 +5,7 @@ A lightweight microservice that manages audio hardware configuration on a Raspbe
 This service allows you to configure Audio HATs (like HiFiBerry DACs/Amps) via a simple HTTP API. It automatically handles:
 
 - **System Overlays:** Adjusting `/boot/firmware/config.txt` (or `/boot/config.txt`) to load the correct drivers.
-- **Audio Engine Routing:** Adjusting `/etc/camilladsp/default.yml` so CamillaDSP uses the correct output device.
+- **Audio Engine Routing:** Adjusting CamillaDSP config files in `/home/beatnik/camilladsp/configs/`.
 - **Hardware Detection:** Automatically reading HAT EEPROMs to identify connected hardware.
 
 ## 📋 Prerequisites
@@ -108,7 +108,8 @@ curl http://localhost:3000/api/hardware/status
 {
   "currentConfig": { "id": "none", "name": "No HAT..." },
   "detectedHardware": { "id": "hifiberry-amp", "name": "HiFiBerry Amp2..." },
-  "isMatch": false
+  "isMatch": false,
+  "camillaConfigFile": "profile-a.yml"
 }
 ```
 
@@ -135,6 +136,29 @@ curl -X POST http://localhost:3000/api/hardware/apply \
 }
 ```
 
+### List Available CamillaDSP Configs
+Lists selectable config files from `/home/beatnik/camilladsp/configs/`.
+
+```bash
+curl http://localhost:3000/api/hardware/camilla/configs
+```
+
+### Get Current Default CamillaDSP Config
+Returns the active default file (usually the symlink target of `client_config.yml`).
+
+```bash
+curl http://localhost:3000/api/hardware/camilla/configs/default
+```
+
+### Set Default CamillaDSP Config
+Switches `client_config.yml` to another config file in `/home/beatnik/camilladsp/configs/`.
+
+```bash
+curl -X PUT http://localhost:3000/api/hardware/camilla/configs/default \
+  -H "Content-Type: application/json" \
+  -d '{"fileName": "my_profile.yml"}'
+```
+
 ### System Reboot
 A reboot is required to make changes to `config.txt` effective.
 
@@ -149,17 +173,20 @@ You can test the service on your laptop without a Pi. The service uses environme
 **Create dummy files for testing:**
 ```bash
 touch test-config.txt
-touch test-camilla.yml
+mkdir -p test-camilla-configs
+touch test-camilla-configs/profile-a.yml
+touch test-camilla-configs/profile-b.yml
+ln -sf ./test-camilla-configs/profile-a.yml test-camilla.yml
 ```
 
 **Start the server in dev mode with environment variables:**
 ```bash
 # Linux / Mac
-CONFIG_PATH=./test-config.txt CAMILLA_CONFIG_PATH=./test-camilla.yml npm run dev
+CONFIG_PATH=./test-config.txt CAMILLA_CONFIG_DIR=./test-camilla-configs CAMILLA_CONFIG_PATH=./test-camilla.yml npm run dev
 ```
 The server is now running and writes changes to your local test files instead of `/boot/config.txt`.
 
 ## ⚠️ Important Notes
 
-- **Overwriting Configurations:** This service overwrites parts of `/boot/firmware/config.txt` and `/etc/camilladsp/default.yml`. Manual changes to audio settings in these files may be lost.
+- **Overwriting Configurations:** This service overwrites parts of `/boot/firmware/config.txt` and the active CamillaDSP config (default: `/home/beatnik/camilladsp/configs/client_config.yml`). Manual changes to audio settings in these files may be lost.
 - **Backup:** The service tries to be "gentle", but it is always advisable to have backups of your working configuration files.
