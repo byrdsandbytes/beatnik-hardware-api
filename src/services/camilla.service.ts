@@ -40,7 +40,6 @@ export class CamillaService {
                 const extension = path.extname(fileName).toLowerCase();
                 return extension === '.yml' || extension === '.yaml';
             })
-            .filter((fileName) => fileName !== 'client_config.yml')
             .sort((left, right) => left.localeCompare(right));
     }
 
