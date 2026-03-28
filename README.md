@@ -131,7 +131,8 @@ curl -X POST http://localhost:3000/api/hardware/apply \
 ```json
 {
   "status": "success",
-  "message": "Configuration applied. Reboot required.",
+  "message": "Configuration applied. CamillaDSP restarted. Reboot required.",
+  "camillaRestarted": true,
   "rebootRequired": true
 }
 ```
@@ -152,6 +153,7 @@ curl http://localhost:3000/api/hardware/camilla/configs/default
 
 ### Set Default CamillaDSP Config
 Switches `client_config.yml` to another config file in `/home/beatnik/camilladsp/configs/`.
+The service restarts CamillaDSP automatically after switching.
 
 ```bash
 curl -X PUT http://localhost:3000/api/hardware/camilla/configs/default \

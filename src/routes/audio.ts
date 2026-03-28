@@ -52,8 +52,10 @@ export async function audioRoutes(fastify: FastifyInstance) {
     }
 
     try {
-      await camillaService.setDefaultConfig(fileName);
-      return { status: 'success', fileName };
+      const activeConfig = await configService.getActiveConfig();
+      await camillaService.setDefaultConfig(fileName, activeConfig?.id);
+      await camillaService.restartService();
+      return { status: 'success', fileName, camillaRestarted: true };
     } catch (error) {
       request.log.error(error);
       const message = error instanceof Error ? error.message : 'Failed to set default CamillaDSP config';
@@ -98,10 +100,12 @@ export async function audioRoutes(fastify: FastifyInstance) {
       
       // 2. camilladsp.yml (Audio Routing)
       await camillaService.updateConfig(hatId);
+      await camillaService.restartService();
 
       return { 
         status: 'success', 
-        message: 'Configuration applied. Reboot required.', 
+        message: 'Configuration applied. CamillaDSP restarted. Reboot required.', 
+        camillaRestarted: true,
         rebootRequired: true 
       };
     } catch (error) {

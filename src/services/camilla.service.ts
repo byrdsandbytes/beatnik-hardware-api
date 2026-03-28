@@ -1,12 +1,25 @@
 import fs from 'fs/promises';
 import path from 'path';
 import yaml from 'js-yaml';
+import { exec } from 'child_process';
+import { promisify } from 'util';
 import { SUPPORTED_HATS } from '../types/hats';
 
 const CAMILLA_CONFIG_DIR = process.env.CAMILLA_CONFIG_DIR || '/home/beatnik/camilladsp/configs';
 const CAMILLA_CONFIG_PATH = process.env.CAMILLA_CONFIG_PATH || path.join(CAMILLA_CONFIG_DIR, 'client_config.yml');
+const CAMILLA_SERVICE_NAME = process.env.CAMILLA_SERVICE_NAME || 'camilladsp';
+const execAsync = promisify(exec);
 
 export class CamillaService {
+    async restartService(): Promise<void> {
+        try {
+            await execAsync(`sudo systemctl restart ${CAMILLA_SERVICE_NAME}`);
+        } catch (error) {
+            console.error('Failed to restart CamillaDSP service:', error);
+            throw new Error('Failed to restart CamillaDSP service');
+        }
+    }
+
     private validateConfigFileName(fileName: string): string {
         const trimmedFileName = fileName?.trim();
         if (!trimmedFileName) {
@@ -40,6 +53,7 @@ export class CamillaService {
                 const extension = path.extname(fileName).toLowerCase();
                 return extension === '.yml' || extension === '.yaml';
             })
+            .filter((fileName) => fileName !== 'client_config.yml')
             .sort((left, right) => left.localeCompare(right));
     }
 
@@ -54,7 +68,7 @@ export class CamillaService {
         return path.basename(CAMILLA_CONFIG_PATH);
     }
 
-    async setDefaultConfig(fileName: string): Promise<void> {
+    async setDefaultConfig(fileName: string, hatId?: string): Promise<void> {
         const safeFileName = this.validateConfigFileName(fileName);
         const targetPath = path.resolve(CAMILLA_CONFIG_DIR, safeFileName);
         const configDirPath = path.resolve(CAMILLA_CONFIG_DIR) + path.sep;
@@ -78,6 +92,10 @@ export class CamillaService {
 
         await fs.symlink(targetPath, temporaryLinkPath);
         await fs.rename(temporaryLinkPath, CAMILLA_CONFIG_PATH);
+
+        if (hatId) {
+            await this.updateConfig(hatId);
+        }
     }
 
     /**
