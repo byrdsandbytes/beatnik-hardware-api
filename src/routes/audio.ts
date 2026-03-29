@@ -17,20 +17,68 @@ export async function audioRoutes(fastify: FastifyInstance) {
     return Object.values(SUPPORTED_HATS);
   });
 
+  // GET /api/hardware/camilla/configs
+  // Liste verfügbarer CamillaDSP Config-Dateien
+  fastify.get('/camilla/configs', async (request, reply) => {
+    try {
+      const configs = await camillaService.listAvailableConfigs();
+      return { configs };
+    } catch (error) {
+      request.log.error(error);
+      return reply.code(500).send({ error: 'Failed to list CamillaDSP configs' });
+    }
+  });
+
+  // GET /api/hardware/camilla/configs/default
+  // Aktive Standard-Config ermitteln
+  fastify.get('/camilla/configs/default', async (request, reply) => {
+    try {
+      const fileName = await camillaService.getDefaultConfig();
+      return { fileName };
+    } catch (error) {
+      request.log.error(error);
+      return reply.code(500).send({ error: 'Failed to get default CamillaDSP config' });
+    }
+  });
+
+  // PUT /api/hardware/camilla/configs/default
+  // Body: { fileName: 'my_profile.yml' }
+  // Setzt die Standard-Config via Symlink auf client_config.yml
+  fastify.put<{ Body: { fileName: string } }>('/camilla/configs/default', async (request, reply) => {
+    const { fileName } = request.body || {};
+
+    if (!fileName || typeof fileName !== 'string') {
+      return reply.code(400).send({ error: 'fileName is required' });
+    }
+
+    try {
+      const activeConfig = await configService.getActiveConfig();
+      await camillaService.setDefaultConfig(fileName, activeConfig?.id);
+      await camillaService.restartService();
+      return { status: 'success', fileName, camillaRestarted: true };
+    } catch (error) {
+      request.log.error(error);
+      const message = error instanceof Error ? error.message : 'Failed to set default CamillaDSP config';
+      return reply.code(400).send({ error: message });
+    }
+  });
+
   // GET /api/hardware/status
   // Gibt zurück: Was ist eingestellt? Was wurde erkannt?
   fastify.get('/status', async () => {
-    const [active, detected, eepromDisabled] = await Promise.all([
+    const [active, detected, eepromDisabled, camillaConfigFile] = await Promise.all([
       configService.getActiveConfig(),
       detectionService.detectConnectedHat(),
-      configService.isEepromReadDisabled()
+      configService.isEepromReadDisabled(),
+      camillaService.getDefaultConfig()
     ]);
 
     return {
       currentConfig: active,
       detectedHardware: detected,
       isMatch: active?.id === detected?.id,
-      eepromReadDisabled: eepromDisabled
+      eepromReadDisabled: eepromDisabled,
+      camillaConfigFile
     };
   });
 
@@ -52,10 +100,12 @@ export async function audioRoutes(fastify: FastifyInstance) {
       
       // 2. camilladsp.yml (Audio Routing)
       await camillaService.updateConfig(hatId);
+      await camillaService.restartService();
 
       return { 
         status: 'success', 
-        message: 'Configuration applied. Reboot required.', 
+        message: 'Configuration applied. CamillaDSP restarted. Reboot required.', 
+        camillaRestarted: true,
         rebootRequired: true 
       };
     } catch (error) {
