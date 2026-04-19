@@ -8,12 +8,13 @@ const execAsync = promisify(exec);
 export interface SystemInfo {
   hostname: string;
   ipAddresses: string[];
-  totalRam: number;
-  freeRam: number;
+  totalRam: string;
+  freeRam: string;
   temperature: number | null;
   os: string;
   macAddress: string | null;
   storageType: string | null;
+  model: string;
 }
 
 /**
@@ -80,21 +81,64 @@ async function getTemperature(): Promise<number | null> {
   }
 }
 
+/**
+ * Helper to get Raspberry Pi model information
+ */
+async function getPiModel(): Promise<string> {
+  try {
+    // Try to read device tree model (standard on Pi)
+    const modelPath = '/proc/device-tree/model';
+    const content = await fs.readFile(modelPath, 'utf8');
+    // Remove null terminator
+    return content.replace(/\\0/g, '').trim();
+  } catch (e) {
+    // Ignore errors
+  }
+  return 'Unknown Device';
+}
+
+/**
+ * Helper to get OS name from /etc/os-release
+ */
+async function getOsInfo(): Promise<string> {
+  try {
+    const osRelease = await fs.readFile('/etc/os-release', 'utf8');
+    const match = osRelease.match(/^PRETTY_NAME="(.*)"$/m);
+    if (match && match[1]) {
+      return match[1];
+    }
+  } catch (e) {
+    // Ignore errors and fall back to Node.js os module
+  }
+  return `${os.type()} ${os.release()}`;
+}
+
+/**
+ * Helper to format RAM in GB
+ */
+function formatRam(bytes: number): string {
+  const gb = bytes / (1024 * 1024 * 1024);
+  return `${gb.toFixed(1)}GB`;
+}
+
 export class SystemService {
   async getInfo(): Promise<SystemInfo> {
     const { ipAddresses, macAddress } = getNetworkInfo();
     const storageType = await getStorageInfo();
     const temperature = await getTemperature();
+    const model = await getPiModel();
+    const osInfo = await getOsInfo();
 
     return {
       hostname: os.hostname(),
       ipAddresses,
-      totalRam: os.totalmem(),
-      freeRam: os.freemem(),
+      totalRam: formatRam(os.totalmem()),
+      freeRam: formatRam(os.freemem()),
       temperature,
-      os: `${os.type()} ${os.release()}`,
+      os: osInfo,
       macAddress,
       storageType,
+      model,
     };
   }
 
