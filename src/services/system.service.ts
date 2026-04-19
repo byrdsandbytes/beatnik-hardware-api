@@ -14,8 +14,6 @@ export interface SystemInfo {
   os: string;
   macAddress: string | null;
   storageType: string | null;
-  storageTotal: number;
-  storageFree: number;
 }
 
 /**
@@ -42,43 +40,8 @@ function getNetworkInfo(): { ipAddresses: string[]; macAddress: string | null } 
 /**
  * Helper to get storage space and type information
  */
-async function getStorageInfo(): Promise<{ type: string | null; total: number; free: number }> {
+async function getStorageInfo(): Promise<string | null> {
   let type: string | null = null;
-  let total = 0;
-  let free = 0;
-
-  try {
-    // Linux/Raspberry Pi specific robust block sizing. 
-    // %S = block size, %b = total blocks, %a = free blocks available to non-superuser
-    const { stdout: statOut } = await execAsync('stat -f -c "%S %b %a" /');
-    const parts = statOut.trim().split(/\\s+/);
-    if (parts.length === 3) {
-      const blockSize = parseInt(parts[0], 10);
-      total = parseInt(parts[1], 10) * blockSize;
-      free = parseInt(parts[2], 10) * blockSize;
-    }
-  } catch (e) {
-    try {
-      // Fallback for macOS/Unix using POSIX df -k (1024 byte blocks)
-      const { stdout: dfOut } = await execAsync('df -k /');
-      const lines = dfOut.trim().split('\\n');
-      if (lines.length > 1) {
-        // df will often wrap long device names to the next line.
-        // The numeric data is guaranteed to be on the last line.
-        const lastLine = lines[lines.length - 1];
-        const parts = lastLine.trim().split(/\\s+/);
-        // Counting from the end: [ ..., total_blocks, used, free, capacity, mount ]
-        const freeIdx = parts.length - 3;
-        const totalIdx = parts.length - 5;
-        if (freeIdx >= 0 && totalIdx >= 0) {
-          total = parseInt(parts[totalIdx], 10) * 1024;
-          free = parseInt(parts[freeIdx], 10) * 1024;
-        }
-      }
-    } catch (e2) {
-      // Ignore
-    }
-  }
 
   try {
     const typeStr = await fs.readFile('/sys/class/block/mmcblk0/device/type', 'utf8');
@@ -100,7 +63,7 @@ async function getStorageInfo(): Promise<{ type: string | null; total: number; f
     }
   }
 
-  return { type, total, free };
+  return type;
 }
 
 /**
@@ -120,7 +83,7 @@ async function getTemperature(): Promise<number | null> {
 export class SystemService {
   async getInfo(): Promise<SystemInfo> {
     const { ipAddresses, macAddress } = getNetworkInfo();
-    const { type: storageType, total: storageTotal, free: storageFree } = await getStorageInfo();
+    const storageType = await getStorageInfo();
     const temperature = await getTemperature();
 
     return {
@@ -132,8 +95,6 @@ export class SystemService {
       os: `${os.type()} ${os.release()}`,
       macAddress,
       storageType,
-      storageTotal,
-      storageFree,
     };
   }
 
