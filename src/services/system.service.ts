@@ -48,20 +48,36 @@ async function getStorageInfo(): Promise<{ type: string | null; total: number; f
   let free = 0;
 
   try {
-    // Use -P to ensure POSIX output strictly on one line (prevents wrapping)
-    // Use -B1 to report sizes exactly in bytes (standard on Raspberry Pi / GNU df)
-    const { stdout: dfOut } = await execAsync('df -P -B1 /');
-    const lines = dfOut.trim().split('\\n');
-    if (lines.length > 1) {
-      const parts = lines[1].trim().split(/\\s+/);
-      // Expected columns: Filesystem, 1B-blocks (total), Used, Available (free), Capacity, Mounted on
-      if (parts.length >= 6) {
-        total = parseInt(parts[1], 10);
-        free = parseInt(parts[3], 10);
-      }
+    // Linux/Raspberry Pi specific robust block sizing. 
+    // %S = block size, %b = total blocks, %a = free blocks available to non-superuser
+    const { stdout: statOut } = await execAsync('stat -f -c "%S %b %a" /');
+    const parts = statOut.trim().split(/\\s+/);
+    if (parts.length === 3) {
+      const blockSize = parseInt(parts[0], 10);
+      total = parseInt(parts[1], 10) * blockSize;
+      free = parseInt(parts[2], 10) * blockSize;
     }
   } catch (e) {
-    // Ignore df errors
+    try {
+      // Fallback for macOS/Unix using POSIX df -k (1024 byte blocks)
+      const { stdout: dfOut } = await execAsync('df -k /');
+      const lines = dfOut.trim().split('\\n');
+      if (lines.length > 1) {
+        // df will often wrap long device names to the next line.
+        // The numeric data is guaranteed to be on the last line.
+        const lastLine = lines[lines.length - 1];
+        const parts = lastLine.trim().split(/\\s+/);
+        // Counting from the end: [ ..., total_blocks, used, free, capacity, mount ]
+        const freeIdx = parts.length - 3;
+        const totalIdx = parts.length - 5;
+        if (freeIdx >= 0 && totalIdx >= 0) {
+          total = parseInt(parts[totalIdx], 10) * 1024;
+          free = parseInt(parts[freeIdx], 10) * 1024;
+        }
+      }
+    } catch (e2) {
+      // Ignore
+    }
   }
 
   try {
