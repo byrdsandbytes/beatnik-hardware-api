@@ -50,6 +50,19 @@ function getRamSize(): string {
   return `${gb.toFixed(1)}GB`;
 }
 
+/**
+ * Helper to get app version from package.json
+ */
+async function getAppVersion(): Promise<string> {
+  try {
+    const pkgPath = path.join(process.cwd(), 'package.json');
+    const pkgContent = await fs.readFile(pkgPath, 'utf8');
+    return JSON.parse(pkgContent).version || 'unknown';
+  } catch (e) {
+    return 'unknown';
+  }
+}
+
 export class MdnsService {
   private serviceFilePath: string;
   private isRunning: boolean = false;
@@ -68,7 +81,7 @@ export class MdnsService {
     const mac = getMacAddress();
     const model = await getPiModel();
     const ram = getRamSize();
-    const version = "0.4.0"; // Hardcoded for now, or read from package.json if imported
+    const version = await getAppVersion();
 
     console.log(`Starting mDNS advertisement for _beatnik._tcp on port 3000`);
     console.log(`Host: ${hostname}, MAC: ${mac}, Model: ${model}, RAM: ${ram}, v${version}`);
