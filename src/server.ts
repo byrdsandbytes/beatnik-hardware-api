@@ -4,7 +4,6 @@ import { audioRoutes } from './routes/audio';
 import { snapcastRoutes } from './routes/snapcast';
 import { systemRoutes } from './routes/system';
 import { mdnsService } from './services/mdns.service';
-import { gpioService } from './services/gpio.service';
 
 const server = Fastify({
   logger: true
@@ -37,7 +36,6 @@ const start = async () => {
 
 // Graceful shutdown
 const shutdown = async () => {
-  gpioService.shutdown();
   console.log('Shutting down...');
   await mdnsService.stop();
   process.exit(0);
