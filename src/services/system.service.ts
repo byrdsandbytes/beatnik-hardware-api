@@ -48,31 +48,42 @@ async function getStorageInfo(): Promise<{ type: string | null; total: number; f
   let free = 0;
 
   try {
-    const { stdout: dfOut } = await execAsync('df -B1 /');
-    const lines = dfOut.split('\\n');
+    // df -k is POSIX standard and works on macOS/Linux. Units are in 1024-byte blocks.
+    const { stdout: dfOut } = await execAsync('df -k /');
+    const lines = dfOut.trim().split('\\n');
     if (lines.length > 1) {
-      const parts = lines[1].trim().split(/\\s+/);
-      total = parseInt(parts[1], 10);
-      free = parseInt(parts[3], 10);
+      const lastLine = lines[lines.length - 1]; // Handle long device names wrapping to next line
+      const parts = lastLine.trim().split(/\\s+/);
+      // from the end: ... blocks (total), used, available (free), capacity, mount
+      const freeIdx = parts.length - 3;
+      const totalIdx = parts.length - 5;
+      if (freeIdx >= 0 && totalIdx >= 0) {
+        total = parseInt(parts[totalIdx], 10) * 1024;
+        free = parseInt(parts[freeIdx], 10) * 1024;
+      }
     }
+  } catch (e) {
+    // Ignore df errors
+  }
 
+  try {
+    const typeStr = await fs.readFile('/sys/class/block/mmcblk0/device/type', 'utf8');
+    const name = await fs.readFile('/sys/class/block/mmcblk0/device/name', 'utf8');
+    type = `${typeStr.trim()} (${name.trim()})`;
+  } catch (e) {
     try {
-      const typeStr = await fs.readFile('/sys/class/block/mmcblk0/device/type', 'utf8');
-      const name = await fs.readFile('/sys/class/block/mmcblk0/device/name', 'utf8');
-      type = `${typeStr.trim()} (${name.trim()})`;
+      const model = await fs.readFile('/sys/class/block/nvme0n1/device/model', 'utf8');
+      type = `NVMe (${model.trim()})`;
     } catch (e) {
       try {
-        const model = await fs.readFile('/sys/class/block/nvme0n1/device/model', 'utf8');
-        type = `NVMe (${model.trim()})`;
-      } catch (e) {
         const { stdout: lsblkOut } = await execAsync('lsblk -d -o NAME,MODEL | grep -E "sda|nvme" | head -1');
         if (lsblkOut.trim()) {
           type = lsblkOut.trim().split(/\\s+/).slice(1).join(' ').trim() || 'Unknown';
         }
+      } catch (e) {
+        // Ignore lsblk errors
       }
     }
-  } catch (e) {
-    // Ignore storage errors on unsupported platforms
   }
 
   return { type, total, free };
