@@ -8,8 +8,8 @@ const execAsync = promisify(exec);
 export interface SystemInfo {
   hostname: string;
   ipAddresses: string[];
-  totalRam: string;
-  freeRam: string;
+  totalRam: number;
+  freeRam: number;
   temperature: number | null;
   os: string;
   macAddress: string | null;
@@ -114,11 +114,10 @@ async function getOsInfo(): Promise<string> {
 }
 
 /**
- * Helper to format RAM in GB
+ * Helper to format RAM in MB (numeric)
  */
-function formatRam(bytes: number): string {
-  const gb = bytes / (1024 * 1024 * 1024);
-  return `${gb.toFixed(1)}GB`;
+function getRamInMB(bytes: number): number {
+  return Math.round(bytes / (1024 * 1024));
 }
 
 export class SystemService {
@@ -132,8 +131,8 @@ export class SystemService {
     return {
       hostname: os.hostname(),
       ipAddresses,
-      totalRam: formatRam(os.totalmem()),
-      freeRam: formatRam(os.freemem()),
+      totalRam: getRamInMB(os.totalmem()),
+      freeRam: getRamInMB(os.freemem()),
       temperature,
       os: osInfo,
       macAddress,
