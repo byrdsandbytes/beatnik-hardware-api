@@ -48,18 +48,16 @@ async function getStorageInfo(): Promise<{ type: string | null; total: number; f
   let free = 0;
 
   try {
-    // df -k is POSIX standard and works on macOS/Linux. Units are in 1024-byte blocks.
-    const { stdout: dfOut } = await execAsync('df -k /');
+    // Use -P to ensure POSIX output strictly on one line (prevents wrapping)
+    // Use -B1 to report sizes exactly in bytes (standard on Raspberry Pi / GNU df)
+    const { stdout: dfOut } = await execAsync('df -P -B1 /');
     const lines = dfOut.trim().split('\\n');
     if (lines.length > 1) {
-      const lastLine = lines[lines.length - 1]; // Handle long device names wrapping to next line
-      const parts = lastLine.trim().split(/\\s+/);
-      // from the end: ... blocks (total), used, available (free), capacity, mount
-      const freeIdx = parts.length - 3;
-      const totalIdx = parts.length - 5;
-      if (freeIdx >= 0 && totalIdx >= 0) {
-        total = parseInt(parts[totalIdx], 10) * 1024;
-        free = parseInt(parts[freeIdx], 10) * 1024;
+      const parts = lines[1].trim().split(/\\s+/);
+      // Expected columns: Filesystem, 1B-blocks (total), Used, Available (free), Capacity, Mounted on
+      if (parts.length >= 6) {
+        total = parseInt(parts[1], 10);
+        free = parseInt(parts[3], 10);
       }
     }
   } catch (e) {
