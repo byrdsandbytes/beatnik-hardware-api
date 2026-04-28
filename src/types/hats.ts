@@ -175,7 +175,7 @@ export const SUPPORTED_HATS: Record<string, HatProfile> = {
     name: 'Raspberry Pi HDMI 0',
     overlay: '# Beatnik HDMI0',
     camilla: {
-      device: 'hw:CARD=vc4hdmi0,DEV=0',
+      device: 'hw:1,0',
       format: 'S16LE'
     }
   },
