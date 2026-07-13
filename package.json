@@ -1,6 +1,6 @@
 {
   "name": "beatnik-hardware-api",
-  "version": "0.5.2",
+  "version": "0.5.7",
   "description": "Microservice to configure Raspberry Pi Hardware & CamillaDSP for Beatnik",
   "main": "dist/server.js",
   "scripts": {
