@@ -90,7 +90,7 @@ async function getPiModel(): Promise<string> {
     const modelPath = '/proc/device-tree/model';
     const content = await fs.readFile(modelPath, 'utf8');
     // Remove null terminator
-    return content.replace(/\\0/g, '').trim();
+    return content.replace(/\0/g, '').trim();
   } catch (e) {
     // Ignore errors
   }
