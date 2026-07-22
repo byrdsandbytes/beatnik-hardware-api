@@ -1,54 +1,11 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
+import { systemService } from './system.service';
 
 // Configurable constants
 const AVAHI_SERVICE_DIR = process.env.AVAHI_SERVICE_DIR || '/etc/avahi/services';
 const SERVICE_FILENAME = 'beatnik-hardware.service';
-
-/**
- * Helper to get the MAC address of the first non-internal network interface
- */
-function getMacAddress(): string {
-  const interfaces = os.networkInterfaces();
-  for (const name of Object.keys(interfaces)) {
-    const iface = interfaces[name];
-    if (!iface) continue;
-    
-    for (const alias of iface) {
-      if (!alias.internal && alias.mac !== '00:00:00:00:00:00') {
-        return alias.mac;
-      }
-    }
-  }
-  return '00:00:00:00:00:00';
-}
-
-/**
- * Helper to get Raspberry Pi model information
- */
-async function getPiModel(): Promise<string> {
-  try {
-    // Try to read device tree model (standard on Pi)
-    const modelPath = '/proc/device-tree/model';
-    // Use fs.readFile (async) instead of readFileSync
-    const content = await fs.readFile(modelPath, 'utf8');
-    // Remove null terminator
-    return content.replace(/\0/g, '').trim();
-  } catch (e) {
-    // Ignore errors
-  }
-  return 'Unknown Device';
-}
-
-/**
- * Helper to get total RAM in GB
- */
-function getRamSize(): string {
-  const totalMem = os.totalmem();
-  const gb = totalMem / (1024 * 1024 * 1024);
-  return `${gb.toFixed(1)}GB`;
-}
 
 /**
  * Helper to get app version from package.json
@@ -78,9 +35,12 @@ export class MdnsService {
     if (this.isRunning) return;
     
     const hostname = os.hostname();
-    const mac = getMacAddress();
-    const model = await getPiModel();
-    const ram = getRamSize();
+    const sysInfo = await systemService.getInfo();
+    const mac = sysInfo.macAddress || '00:00:00:00:00:00';
+    const model = sysInfo.model;
+    const totalRam = os.totalmem();
+    const gb = totalRam / (1024 * 1024 * 1024);
+    const ram = `${gb.toFixed(1)}GB`;
     const version = await getAppVersion();
 
     console.log(`Starting mDNS advertisement for _beatnik._tcp on port 3000`);

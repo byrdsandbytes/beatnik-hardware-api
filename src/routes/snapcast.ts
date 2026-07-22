@@ -30,4 +30,22 @@ export async function snapcastRoutes(fastify: FastifyInstance) {
       reply.code(500).send({ error: 'Failed to disable snapserver' });
     }
   });
+
+  fastify.post('/restart-server', async (request, reply) => {
+    try {
+      await snapcastService.restartServer();
+      return { success: true, message: 'Snapserver restarted' };
+    } catch (error) {
+      reply.code(500).send({ error: 'Failed to restart snapserver' });
+    }
+  });
+
+  fastify.post('/restart-client', async (request, reply) => {
+    try {
+      await snapcastService.restartClient();
+      return { success: true, message: 'Snapclient restarted' };
+    } catch (error) {
+      reply.code(500).send({ error: 'Failed to restart snapclient' });
+    }
+  });
 }

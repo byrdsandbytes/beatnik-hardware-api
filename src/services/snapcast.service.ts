@@ -76,6 +76,30 @@ export class SnapcastService {
       throw new Error('Failed to disable snapserver');
     }
   }
+
+  /**
+   * Restarts the snapserver service
+   */
+  async restartServer(): Promise<void> {
+    try {
+      await execAsync('sudo systemctl restart snapserver');
+    } catch (error) {
+      console.error('Error restarting snapserver:', error);
+      throw new Error('Failed to restart snapserver');
+    }
+  }
+
+  /**
+   * Restarts the snapclient service
+   */
+  async restartClient(): Promise<void> {
+    try {
+      await execAsync('sudo systemctl restart snapclient');
+    } catch (error) {
+      console.error('Error restarting snapclient:', error);
+      throw new Error('Failed to restart snapclient');
+    }
+  }
 }
 
 export const snapcastService = new SnapcastService();
