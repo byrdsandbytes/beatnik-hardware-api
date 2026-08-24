@@ -34,6 +34,14 @@ nvm use 20
 
 ## 🚀 Installation & Updating
 
+To quickly install the production service on a Raspberry Pi:
+
+```bash
+wget https://raw.githubusercontent.com/byrdsandbytes/beatnik-hardware-api/master/setup.sh
+chmod +x setup.sh
+./setup.sh
+```
+
 To view the full guide for installing the service (both Production & Source workflows) and how to run automated updates, please check out the **[Installation & Updating Guide](INSTALL.md)**.
 
 ## 🧪 Testing the API

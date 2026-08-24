@@ -30,31 +30,42 @@ nvm use 20
 
 ## 🚀 Installation
 
-### Method 1: Production Installation (Recommended)
-This method uses pre-built release artifacts configured via GitHub Actions. It is the cleanest way to run the service in production.
+### Method 1: Production Setup Script (Recommended)
+We provide an automated setup script that downloads the latest pre-built release artifact, installs dependencies, and configures the systemd service. This is the cleanest way to run the service in production.
 
-**1. Create the Application Directory**
+```bash
+wget https://raw.githubusercontent.com/byrdsandbytes/beatnik-hardware-api/master/setup.sh
+chmod +x setup.sh
+./setup.sh
+```
+
+**What the script does:**
+1. Creates the `/opt/beatnik-hardware-api` directory.
+2. Downloads and extracts the latest release artifact from GitHub.
+3. Installs Node.js v20 via NVM (if not present).
+4. Installs production dependencies (`npm install --omit=dev`).
+5. Automatically patches and installs `beatnik-hardware.service` to systemd and starts it.
+
+---
+
+### Method 2: Manual Source Installation (Development)
+If you want to build the project directly from source on the Pi itself:
+
+**1. Clone Repository**
 ```bash
 sudo mkdir -p /opt/beatnik-hardware-api
 sudo chown -R $USER:$USER /opt/beatnik-hardware-api
 cd /opt/beatnik-hardware-api
+git clone https://github.com/byrdsandbytes/beatnik-hardware-api.git .
 ```
 
-**2. Download and Extract the Latest Release**
-Find the latest `beatnik-hardware-api.tar.gz` from the [GitHub Releases page](https://github.com/byrdsandbytes/beatnik-hardware-api/releases) and download it:
+**2. Install Dependencies & Build**
 ```bash
-# Replace with the actual URL from the latest release
-wget -O beatnik-hardware-api.tar.gz https://github.com/byrdsandbytes/beatnik-hardware-api/releases/latest/download/beatnik-hardware-api.tar.gz
-tar -xzvf beatnik-hardware-api.tar.gz
-rm beatnik-hardware-api.tar.gz
+npm install
+npm run build
 ```
 
-**3. Install Production Dependencies**
-```bash
-npm install --omit=dev
-```
-
-**4. Set up the System Service**
+**3. Set up the System Service**
 ```bash
 # Copy the service file
 sudo cp beatnik-hardware.service /etc/systemd/system/
@@ -69,50 +80,25 @@ sudo systemctl enable beatnik-hardware.service
 sudo systemctl start beatnik-hardware.service
 ```
 
-*(Note: Ensure `WorkingDirectory` in the service file points to `/opt/beatnik-hardware-api`.)*
-
----
-
-### Method 2: Quick Source Installation (Development)
-If you want to build the project directly from source on the Pi itself, use our automated setup script.
-
-**1. Run the Setup Script**
-```bash
-wget https://raw.githubusercontent.com/byrdsandbytes/beatnik-hardware-api/master/setup.sh
-chmod +x setup.sh
-./setup.sh
-```
-
-**What the script does:**
-1. Installs Node.js v20 via NVM.
-2. Clones the repository (if not already present).
-3. Installs all NPM dependencies (including dev tools).
-4. Compiles the TypeScript project into the `dist/` folder.
-5. Automatically patches and installs `beatnik-hardware.service` to systemd based on your current installation directory.
-
 ---
 
 ## 🔄 Updating the Service
 
-To make future updates completely seamless for production environments (Method 1), the repository includes an `update.sh` script. 
+To make future updates completely seamless, the `setup.sh` script is designed to also act as an updater. 
 
-Whenever a new version (`vX.X.X`) is tagged and pushed to GitHub, an automated CI/CD pipeline (GitHub Actions) instantly builds a new release artifact. You can easily pull this update onto your Raspberry Pi.
+Whenever a new version (`vX.X.X`) is tagged and pushed to GitHub, an automated CI/CD pipeline (GitHub Actions) instantly builds a new release artifact. You can easily pull this update onto your Raspberry Pi by running the local setup script again:
 
-**How to Update:**
-Simply run the included update script from your Pi:
 ```bash
-# Assuming the script is in your installation directory
 cd /opt/beatnik-hardware-api
-./update.sh
+./setup.sh
 ```
 
-**What the update script does:**
-1. Queries the GitHub API for the latest release of `byrdsandbytes/beatnik-hardware-api`.
-2. Downloads the new `beatnik-hardware-api.tar.gz` artifact.
-3. Automatically stops the `beatnik-hardware.service`.
-4. Extracts the new files over the existing installation.
-5. Runs `npm install --omit=dev` to sync any new dependencies.
-6. Restarts the system service and cleans up the downloaded archive.
+**What the updater does:**
+1. Checks if the service is currently running, and smoothly stops it.
+2. Queries the GitHub API for the latest release of `byrdsandbytes/beatnik-hardware-api`.
+3. Downloads & extracts the new `beatnik-hardware-api.tar.gz` artifact over the existing installation.
+4. Runs `npm install --omit=dev` to sync any new dependencies.
+5. Restarts the system service and cleans up.
 
 
 

@@ -10,6 +10,11 @@ ARTIFACT="beatnik-hardware-api.tar.gz"
 INSTALL_DIR="/opt/beatnik-hardware-api"
 SERVICE_FILE="beatnik-hardware.service"
 
+if systemctl is-active --quiet "$SERVICE_FILE"; then
+    echo "🛑 Stopping existing service for update..."
+    sudo systemctl stop "$SERVICE_FILE"
+fi
+
 echo "📂 Creating installation directory at $INSTALL_DIR..."
 sudo mkdir -p $INSTALL_DIR
 sudo chown -R $USER:$USER $INSTALL_DIR
