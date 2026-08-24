@@ -3,23 +3,37 @@
 # Exit on error
 set -e
 
-echo "🚀 Starting Beatnik Hardware API Setup..."
+echo "🚀 Starting Beatnik Hardware API Production Setup..."
 
-# Check if we are in the repo, if not clone it
-if [ ! -f "package.json" ] || [ ! -f "beatnik-hardware.service" ]; then
-    echo "📂 Not in project directory. Cloning repository..."
-    if [ -d "beatnik-hardware-api" ]; then
-        echo "   Directory 'beatnik-hardware-api' already exists. Entering..."
-        cd beatnik-hardware-api
-    else
-        git clone https://github.com/byrdsandbytes/beatnik-hardware-api.git
-        cd beatnik-hardware-api
-    fi
+REPO="byrdsandbytes/beatnik-hardware-api"
+ARTIFACT="beatnik-hardware-api.tar.gz"
+INSTALL_DIR="/opt/beatnik-hardware-api"
+SERVICE_FILE="beatnik-hardware.service"
+
+if systemctl is-active --quiet "$SERVICE_FILE"; then
+    echo "🛑 Stopping existing service for update..."
+    sudo systemctl stop "$SERVICE_FILE"
 fi
 
-# Get current directory
-INSTALL_DIR="$(pwd)"
-echo "📂 Installation directory: $INSTALL_DIR"
+echo "📂 Creating installation directory at $INSTALL_DIR..."
+sudo mkdir -p $INSTALL_DIR
+sudo chown -R $USER:$USER $INSTALL_DIR
+cd $INSTALL_DIR
+
+echo "🔍 Finding latest release on GitHub..."
+DOWNLOAD_URL=$(curl -s https://api.github.com/repos/$REPO/releases/latest | grep "browser_download_url" | grep "$ARTIFACT" | cut -d '"' -f 4)
+
+if [ -z "$DOWNLOAD_URL" ]; then
+  echo "❌ Could not find the latest release. Check your internet connection or repository name."
+  exit 1
+fi
+
+echo "⬇️ Downloading release..."
+wget -q -O $ARTIFACT "$DOWNLOAD_URL"
+
+echo "📦 Extracting release..."
+tar -xzvf $ARTIFACT
+rm $ARTIFACT
 
 # 1.5 Setup Node.js via NVM
 echo "🟢 Setting up Node.js (NVM)..."
@@ -48,12 +62,8 @@ nvm install 20
 nvm use 20
 
 # 2. Install Dependencies
-echo "🟢 Installing NPM Dependencies..."
-npm install
-
-# 3. Build Project
-echo "🟢 Building TypeScript Project..."
-npm run build
+echo "🟢 Installing Production Dependencies..."
+npm install --omit=dev
 
 # 4. Configure Systemd Service
 echo "🟢 Configuring Systemd Service..."
@@ -63,7 +73,6 @@ NODE_EXEC=$(nvm which 20)
 echo "   Node executable found at: $NODE_EXEC"
 
 # Create a temporary service file
-SERVICE_FILE="beatnik-hardware.service"
 TEMP_SERVICE_FILE="${SERVICE_FILE}.tmp"
 
 cp "$SERVICE_FILE" "$TEMP_SERVICE_FILE"
