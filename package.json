@@ -7,7 +7,7 @@
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "pack-pi": "npm run build && tar -czvf beatnik-api.tar.gz dist package.json package-lock.json"
+    "pack-pi": "npm run build && tar -czvf beatnik-hardware-api.tar.gz dist package.json package-lock.json"
   },
   "dependencies": {
     "@fastify/cors": "^9.0.1",

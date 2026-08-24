@@ -32,65 +32,9 @@ nvm install 20
 nvm use 20
 ```
 
-## 🚀 Quick Installation (Recommended)
+## 🚀 Installation & Updating
 
-You can install the entire service (including Node.js, dependencies, and systemd setup) with a single script.
-
-```bash
-wget https://raw.githubusercontent.com/byrdsandbytes/beatnik-hardware-api/master/setup.sh
-chmod +x setup.sh
-./setup.sh
-```
-
-Follow the prompts on the screen. The script will ask for your `sudo` password to install the system service.
-
-## 🛠 Manual Installation
-
-If you prefer to install everything manually, follow these steps:
-
-### 1. Clone Repository
-We recommend installing in the `/opt/` directory.
-
-```bash
-cd /opt
-sudo git clone https://github.com/byrdsandbytes/beatnik-hardware-api.git
-cd beatnik-hardware-api
-```
-
-### 2. Install Dependencies
-Since we are using `nvm`, run `npm` without `sudo`.
-
-```bash
-npm install
-```
-
-### 3. Build Project
-```bash
-npm run build
-```
-
-## ⚙️ Setup as System Service (Manual)
-
-If you didn't use the setup script:
-
-### 1. Copy Service File
-```bash
-sudo cp beatnik-hardware.service /etc/systemd/system/
-```
-**Important:** Adjust the `ExecStart` path in `/etc/systemd/system/beatnik-hardware.service` to point to your Node.js executable (find it with `which node`).
-
-### 2. Enable and Start Service
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable beatnik-hardware.service
-sudo systemctl start beatnik-hardware.service
-```
-
-### 3. Check Status
-```bash
-sudo systemctl status beatnik-hardware.service
-```
-If everything is green (`active (running)`), the server is running on port 3000.
+To view the full guide for installing the service (both Production & Source workflows) and how to run automated updates, please check out the **[Installation & Updating Guide](INSTALL.md)**.
 
 ## 🧪 Testing the API
 
@@ -187,6 +131,16 @@ ln -sf ./test-camilla-configs/profile-a.yml test-camilla.yml
 CONFIG_PATH=./test-config.txt CAMILLA_CONFIG_DIR=./test-camilla-configs CAMILLA_CONFIG_PATH=./test-camilla.yml npm run dev
 ```
 The server is now running and writes changes to your local test files instead of `/boot/config.txt`.
+
+## 📦 Automated Releases (CI/CD)
+
+This repository is configured with GitHub Actions to automatically generate pre-built release artifacts. Whenever a new version tag (e.g., `v0.6.0`) is pushed:
+
+1. The project is built from source.
+2. A `beatnik-hardware-api.tar.gz` archive is created (containing the compiled `dist/` directory, `package.json`, and `package-lock.json`).
+3. The archive is uploaded automatically to the [GitHub Releases](https://github.com/byrdsandbytes/beatnik-hardware-api/releases) page.
+
+This allows you to bypass the build step on the Raspberry Pi. You can simply download the release artifact, extract it to `/opt/beatnik-hardware-api`, run `npm ci --omit=dev` to install production dependencies, and start the service.
 
 ## ⚠️ Important Notes
 

@@ -26,4 +26,4 @@ jobs:
       - name: Upload Release Asset
         uses: softprops/action-gh-release@v1
         with:
-          files: beatnik-api.tar.gz
+          files: beatnik-hardware-api.tar.gz
