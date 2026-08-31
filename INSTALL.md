@@ -11,7 +11,7 @@ There are two primary ways to install the service. **Method 1 (Production Releas
 Before you begin, ensure your Raspberry Pi meets the following requirements:
 - **OS:** Raspberry Pi OS (Bookworm or newer recommended)
 - **Privileges:** Root access (`sudo`) is required to modify system configuration files and manage systemd services.
-- **Node.js:** Version 20 is required.
+- **Node.js:** Version 22 is required.
 
 ### Installing Node.js (via NVM)
 If you don't have Node.js installed, we recommend using NVM (Node Version Manager):
@@ -21,9 +21,9 @@ If you don't have Node.js installed, we recommend using NVM (Node Version Manage
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
 source ~/.bashrc
 
-# Install and activate Node.js 20
-nvm install 20
-nvm use 20
+# Install and activate Node.js 22
+nvm install 22
+nvm use 22
 ```
 
 ---
@@ -42,7 +42,7 @@ chmod +x setup.sh
 **What the script does:**
 1. Creates the `/opt/beatnik-hardware-api` directory.
 2. Downloads and extracts the latest release artifact from GitHub.
-3. Installs Node.js v20 via NVM (if not present).
+3. Installs Node.js v22 via NVM (if not present).
 4. Installs production dependencies (`npm install --omit=dev`).
 5. Automatically patches and installs `beatnik-hardware.service` to systemd and starts it.
 
