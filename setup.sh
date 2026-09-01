@@ -56,10 +56,10 @@ else
   exit 1
 fi
 
-# Install and use Node.js 20
-echo "   Installing/Using Node.js 20..."
-nvm install 20
-nvm use 20
+# Install and use Node.js 22
+echo "   Installing/Using Node.js 22..."
+nvm install 22
+nvm use 22
 
 # 2. Install Dependencies
 echo "🟢 Installing Production Dependencies..."
@@ -69,7 +69,7 @@ npm install --omit=dev
 echo "🟢 Configuring Systemd Service..."
 
 # Get absolute path to node executable
-NODE_EXEC=$(nvm which 20)
+NODE_EXEC=$(nvm which 22)
 echo "   Node executable found at: $NODE_EXEC"
 
 # Create a temporary service file

@@ -1,6 +1,6 @@
 {
   "name": "beatnik-hardware-api",
-  "version": "0.6.4",
+  "version": "0.6.6",
   "description": "Microservice to configure Raspberry Pi Hardware & CamillaDSP for Beatnik",
   "main": "dist/server.js",
   "scripts": {
@@ -17,7 +17,7 @@
   },
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",
-    "@types/node": "^20.8.10",
+    "@types/node": "^22.0.0",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.2.2"
   }
