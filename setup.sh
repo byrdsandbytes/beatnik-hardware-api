@@ -7,7 +7,7 @@ echo "🚀 Starting Beatnik Hardware API Production Setup..."
 
 REPO="byrdsandbytes/beatnik-hardware-api"
 ARTIFACT="beatnik-hardware-api.tar.gz"
-INSTALL_DIR="/opt/beatnik-hardware-api"
+INSTALL_DIR="$HOME/beatnik-hardware-api"
 SERVICE_FILE="beatnik-hardware.service"
 
 if systemctl is-active --quiet "$SERVICE_FILE"; then
@@ -16,9 +16,8 @@ if systemctl is-active --quiet "$SERVICE_FILE"; then
 fi
 
 echo "📂 Creating installation directory at $INSTALL_DIR..."
-sudo mkdir -p $INSTALL_DIR
-sudo chown -R $USER:$USER $INSTALL_DIR
-cd $INSTALL_DIR
+mkdir -p "$INSTALL_DIR"
+cd "$INSTALL_DIR"
 
 echo "🔍 Finding latest release on GitHub..."
 DOWNLOAD_URL=$(curl -s https://api.github.com/repos/$REPO/releases/latest | grep "browser_download_url" | grep "$ARTIFACT" | cut -d '"' -f 4)
