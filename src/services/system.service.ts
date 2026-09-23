@@ -5,6 +5,14 @@ import fs from 'fs/promises';
 
 const execAsync = promisify(exec);
 
+export interface NetworkQuality {
+  interface: string;
+  ssid: string | null;
+  linkQuality: number | null; // percentage, 0-100
+  signalLevel: number | null; // dBm
+  noiseLevel: number | null; // dBm
+}
+
 export interface SystemInfo {
   hostname: string;
   ipAddresses: string[];
@@ -15,6 +23,7 @@ export interface SystemInfo {
   macAddress: string | null;
   storageType: string | null;
   model: string;
+  networkQuality: NetworkQuality | null;
 }
 
 /**
@@ -120,6 +129,56 @@ function getRamInMB(bytes: number): number {
   return Math.round(bytes / (1024 * 1024));
 }
 
+/**
+ * Helper to get the currently associated WiFi SSID via nmcli
+ */
+async function getSsid(): Promise<string | null> {
+  try {
+    const { stdout } = await execAsync('nmcli -t -f active,ssid dev wifi');
+    const activeLine = stdout.split('\n').find((line) => line.startsWith('yes:'));
+    if (!activeLine) return null;
+    const ssid = activeLine.slice('yes:'.length).trim();
+    return ssid || null;
+  } catch (e) {
+    // nmcli not available, or no active WiFi connection
+    return null;
+  }
+}
+
+/**
+ * Helper to get WiFi link quality/signal from /proc/net/wireless (Linux only)
+ */
+async function getNetworkQuality(): Promise<NetworkQuality | null> {
+  try {
+    const wireless = await fs.readFile('/proc/net/wireless', 'utf8');
+    const lines = wireless.trim().split('\n').slice(2); // skip the two header rows
+    if (lines.length === 0 || !lines[0].trim()) return null;
+
+    const parts = lines[0].replace(':', ' ').trim().split(/\s+/);
+    const [iface, , qualityStr, levelStr, noiseStr] = parts;
+    const rawQuality = parseFloat(qualityStr);
+    const signalLevel = parseFloat(levelStr);
+    const noiseLevel = parseFloat(noiseStr);
+    const ssid = await getSsid();
+
+    // Link quality is conventionally reported on a 0-70 scale
+    const linkQuality = Number.isFinite(rawQuality)
+      ? Math.min(100, Math.round((rawQuality / 70) * 100))
+      : null;
+
+    return {
+      interface: iface,
+      ssid,
+      linkQuality,
+      signalLevel: Number.isFinite(signalLevel) ? signalLevel : null,
+      noiseLevel: Number.isFinite(noiseLevel) ? noiseLevel : null,
+    };
+  } catch (e) {
+    // Not connected via WiFi, or not running on Linux
+    return null;
+  }
+}
+
 export class SystemService {
   async getInfo(): Promise<SystemInfo> {
     const { ipAddresses, macAddress } = getNetworkInfo();
@@ -127,6 +186,7 @@ export class SystemService {
     const temperature = await getTemperature();
     const model = await getPiModel();
     const osInfo = await getOsInfo();
+    const networkQuality = await getNetworkQuality();
 
     return {
       hostname: os.hostname(),
@@ -138,6 +198,7 @@ export class SystemService {
       macAddress,
       storageType,
       model,
+      networkQuality,
     };
   }
 
