@@ -3,7 +3,7 @@
 # Exit on error
 set -e
 
-echo "🚀 Starting Beatnik Hardware API Production Setup..."
+echo "==> Starting Beatnik Hardware API Production Setup..."
 
 REPO="byrdsandbytes/beatnik-hardware-api"
 ARTIFACT="beatnik-hardware-api.tar.gz"
@@ -11,31 +11,31 @@ INSTALL_DIR="$HOME/beatnik-hardware-api"
 SERVICE_FILE="beatnik-hardware.service"
 
 if systemctl is-active --quiet "$SERVICE_FILE"; then
-    echo "🛑 Stopping existing service for update..."
+    echo "-- Stopping existing service for update..."
     sudo systemctl stop "$SERVICE_FILE"
 fi
 
-echo "📂 Creating installation directory at $INSTALL_DIR..."
+echo "-- Creating installation directory at $INSTALL_DIR..."
 mkdir -p "$INSTALL_DIR"
 cd "$INSTALL_DIR"
 
-echo "🔍 Finding latest release on GitHub..."
+echo "-- Finding latest release on GitHub..."
 DOWNLOAD_URL=$(curl -s https://api.github.com/repos/$REPO/releases/latest | grep "browser_download_url" | grep "$ARTIFACT" | cut -d '"' -f 4)
 
 if [ -z "$DOWNLOAD_URL" ]; then
-  echo "❌ Could not find the latest release. Check your internet connection or repository name."
+  echo "!! Could not find the latest release. Check your internet connection or repository name."
   exit 1
 fi
 
-echo "⬇️ Downloading release..."
+echo "-- Downloading release..."
 wget -q -O $ARTIFACT "$DOWNLOAD_URL"
 
-echo "📦 Extracting release..."
+echo "-- Extracting release..."
 tar -xzvf $ARTIFACT
 rm $ARTIFACT
 
 # 1.5 Setup Node.js via NVM
-echo "🟢 Setting up Node.js (NVM)..."
+echo "==> Setting up Node.js (NVM)..."
 
 # Define NVM_DIR (robust method from README/nvm docs)
 export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
@@ -51,7 +51,7 @@ if [ -s "$NVM_DIR/nvm.sh" ]; then
   # Use '.' instead of '\.' for script compatibility, and add --no-use
   . "$NVM_DIR/nvm.sh" --no-use
 else
-  echo "❌ Failed to locate nvm.sh"
+  echo "!! Failed to locate nvm.sh"
   exit 1
 fi
 
@@ -61,11 +61,11 @@ nvm install 22
 nvm use 22
 
 # 2. Install Dependencies
-echo "🟢 Installing Production Dependencies..."
+echo "==> Installing Production Dependencies..."
 npm install --omit=dev
 
 # 4. Configure Systemd Service
-echo "🟢 Configuring Systemd Service..."
+echo "==> Configuring Systemd Service..."
 
 # Get absolute path to node executable
 NODE_EXEC=$(nvm which 22)
@@ -90,7 +90,7 @@ sed -i "s/^ExecStart=.*/ExecStart=$ESCAPED_NODE_EXEC dist\/server.js/" "$TEMP_SE
 echo "   Service file patched with local paths."
 
 # 5. Install Service (requires sudo)
-echo "🟢 Installing Service to /etc/systemd/system/ (requires sudo)..."
+echo "==> Installing Service to /etc/systemd/system/ (requires sudo)..."
 sudo cp "$TEMP_SERVICE_FILE" "/etc/systemd/system/$SERVICE_FILE"
 rm "$TEMP_SERVICE_FILE"
 
@@ -103,6 +103,6 @@ sudo systemctl enable "$SERVICE_FILE"
 echo "   Restarting service..."
 sudo systemctl restart "$SERVICE_FILE"
 
-echo "✅ Setup Complete!"
+echo "==> Setup Complete!"
 echo "   Checking service status..."
 sudo systemctl status "$SERVICE_FILE" --no-pager
