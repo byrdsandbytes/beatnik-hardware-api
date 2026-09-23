@@ -34,13 +34,15 @@ nvm use 22
 We provide an automated setup script that downloads the latest pre-built release artifact, installs dependencies, and configures the systemd service. This is the cleanest way to run the service in production.
 
 ```bash
+mkdir -p ~/beatnik-hardware-api
+cd ~/beatnik-hardware-api
 wget https://raw.githubusercontent.com/byrdsandbytes/beatnik-hardware-api/master/setup.sh
 chmod +x setup.sh
 ./setup.sh
 ```
 
 **What the script does:**
-1. Creates the `/opt/beatnik-hardware-api` directory.
+1. Creates a `beatnik-hardware-api` directory in your home folder (`~/beatnik-hardware-api`).
 2. Downloads and extracts the latest release artifact from GitHub.
 3. Installs Node.js v22 via NVM (if not present).
 4. Installs production dependencies (`npm install --omit=dev`).
@@ -53,9 +55,8 @@ If you want to build the project directly from source on the Pi itself:
 
 **1. Clone Repository**
 ```bash
-sudo mkdir -p /opt/beatnik-hardware-api
-sudo chown -R $USER:$USER /opt/beatnik-hardware-api
-cd /opt/beatnik-hardware-api
+mkdir -p ~/beatnik-hardware-api
+cd ~/beatnik-hardware-api
 git clone https://github.com/byrdsandbytes/beatnik-hardware-api.git .
 ```
 
@@ -70,8 +71,8 @@ npm run build
 # Copy the service file
 sudo cp beatnik-hardware.service /etc/systemd/system/
 
-# IMPORTANT: Edit the service file to ensure ExecStart points to your Node.js executable
-# You can find your node path by running: which node
+# IMPORTANT: Edit the service file so WorkingDirectory points to ~/beatnik-hardware-api
+# and ExecStart points to your Node.js executable (find it with: which node)
 sudo nano /etc/systemd/system/beatnik-hardware.service
 
 # Enable and start the service
@@ -89,7 +90,7 @@ To make future updates completely seamless, the `setup.sh` script is designed to
 Whenever a new version (`vX.X.X`) is tagged and pushed to GitHub, an automated CI/CD pipeline (GitHub Actions) instantly builds a new release artifact. You can easily pull this update onto your Raspberry Pi by running the local setup script again:
 
 ```bash
-cd /opt/beatnik-hardware-api
+cd ~/beatnik-hardware-api
 ./setup.sh
 ```
 
