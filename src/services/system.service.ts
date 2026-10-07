@@ -8,6 +8,8 @@ const execAsync = promisify(exec);
 export interface NetworkQuality {
   interface: string;
   ssid: string | null;
+  band: '2.4GHz' | '5GHz' | '6GHz' | null;
+  frequency: number | null; // MHz
   linkQuality: number | null; // percentage, 0-100
   signalLevel: number | null; // dBm
   noiseLevel: number | null; // dBm
@@ -146,6 +148,34 @@ async function getSsid(): Promise<string | null> {
 }
 
 /**
+ * Helper to get the currently associated WiFi frequency (MHz) via nmcli
+ */
+async function getFrequency(): Promise<number | null> {
+  try {
+    const { stdout } = await execAsync('nmcli -t -f active,freq dev wifi');
+    const activeLine = stdout.split('\n').find((line) => line.startsWith('yes:'));
+    if (!activeLine) return null;
+    const freqStr = activeLine.slice('yes:'.length).trim();
+    const freq = parseInt(freqStr, 10);
+    return Number.isFinite(freq) ? freq : null;
+  } catch (e) {
+    // nmcli not available, or no active WiFi connection
+    return null;
+  }
+}
+
+/**
+ * Helper to map a WiFi frequency (MHz) to its band
+ */
+function getBandFromFrequency(freq: number | null): NetworkQuality['band'] {
+  if (freq === null) return null;
+  if (freq >= 2400 && freq < 2500) return '2.4GHz';
+  if (freq >= 5000 && freq < 5900) return '5GHz';
+  if (freq >= 5900 && freq < 7200) return '6GHz';
+  return null;
+}
+
+/**
  * Helper to get WiFi link quality/signal from /proc/net/wireless (Linux only)
  */
 async function getNetworkQuality(): Promise<NetworkQuality | null> {
@@ -160,6 +190,7 @@ async function getNetworkQuality(): Promise<NetworkQuality | null> {
     const signalLevel = parseFloat(levelStr);
     const noiseLevel = parseFloat(noiseStr);
     const ssid = await getSsid();
+    const frequency = await getFrequency();
 
     // Link quality is conventionally reported on a 0-70 scale
     const linkQuality = Number.isFinite(rawQuality)
@@ -169,6 +200,8 @@ async function getNetworkQuality(): Promise<NetworkQuality | null> {
     return {
       interface: iface,
       ssid,
+      band: getBandFromFrequency(frequency),
+      frequency,
       linkQuality,
       signalLevel: Number.isFinite(signalLevel) ? signalLevel : null,
       noiseLevel: Number.isFinite(noiseLevel) ? noiseLevel : null,
