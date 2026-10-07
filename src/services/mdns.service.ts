@@ -33,7 +33,7 @@ export class MdnsService {
    */
   async start(): Promise<void> {
     if (this.isRunning) return;
-    
+
     const hostname = os.hostname();
     const sysInfo = await systemService.getInfo();
     const mac = sysInfo.macAddress || '00:00:00:00:00:00';
@@ -45,7 +45,7 @@ export class MdnsService {
 
     console.log(`Starting mDNS advertisement for _beatnik._tcp on port 3000`);
     console.log(`Host: ${hostname}, MAC: ${mac}, Model: ${model}, RAM: ${ram}, v${version}`);
-    
+
     // Create the service definition XML
     // Note: %h in the name is replaced by avahi-daemon with the hostname
     const list = [
@@ -60,8 +60,9 @@ export class MdnsService {
       `    <txt-record>mac=${mac}</txt-record>`,
       `    <txt-record>model=${model}</txt-record>`,
       `    <txt-record>ram=${ram}</txt-record>`,
+      `    <txt-record>build_ref=b8d9c2</txt-record>`,
       `  </service>`,
-      `</service-group>`
+      `</service-group>`,
     ].join('\n');
 
     try {
