@@ -2,22 +2,20 @@ export interface HatProfile {
   id: string;
   name: string;
   overlay: string;
-  // String oder Regex, um den Namen im /proc/device-tree/hat/product zu matchen
-  eepromMatch?: string; 
+  eepromMatch?: string;
   camilla: {
-    device: string; // Das ALSA Playback Device, z.B. "hw:1,0" oder "hw:Headphones"
-    format: string; // Das unterstützte Format, z.B. "S32LE" oder "S16LE"
-    channels?: number; // Optional, default 2
+    device: string;
+    format: string;
+    channels?: number;
   };
 }
 
-// Die zentrale Datenbank aller unterstützten Soundkarten
 export const SUPPORTED_HATS: Record<string, HatProfile> = {
   // --- HiFiBerry DACs ---
 
   'hifiberry-dac': {
     id: 'hifiberry-dac',
-    name: 'HiFiBerry DAC / MiniAmp / Beocreate / DAC+ Light',
+    name: 'HiFiBerry DAC / DAC Zero / MiniAmp / Beocreate / DAC+ Light',
     overlay: 'dtoverlay=hifiberry-dac',
     eepromMatch: 'HiFiBerry DAC',
     camilla: {
@@ -38,7 +36,6 @@ export const SUPPORTED_HATS: Record<string, HatProfile> = {
   'hifiberry-dacplus-std': {
     id: 'hifiberry-dacplus-std',
     name: 'HiFiBerry DAC+ Standard',
-    // Kernel >= 6.1.77
     overlay: 'dtoverlay=hifiberry-dacplus-std',
     eepromMatch: 'HiFiBerry DAC+', 
     camilla: {
@@ -49,7 +46,6 @@ export const SUPPORTED_HATS: Record<string, HatProfile> = {
   'hifiberry-dacplus-pro': {
     id: 'hifiberry-dacplus-pro',
     name: 'HiFiBerry DAC+ Pro / DAC2 Pro',
-    // Kernel >= 6.1.77
     overlay: 'dtoverlay=hifiberry-dacplus-pro',
     eepromMatch: 'HiFiBerry DAC+ Pro',
     camilla: {
@@ -64,6 +60,17 @@ export const SUPPORTED_HATS: Record<string, HatProfile> = {
     name: 'HiFiBerry DAC+ Pro (Legacy)',
     overlay: 'dtoverlay=hifiberry-dacplus-pro',
     eepromMatch: 'HiFiBerry DAC+',
+    camilla: {
+      device: 'plughw:CARD=sndrpihifiberry,DEV=0',
+      format: 'S32LE'
+    }
+  },
+
+  'hifiberry-dacplus-xr': {
+    id: 'hifiberry-dacplus-xr',
+    name: 'HiFiBerry DAC+ XR',
+    overlay: 'dtoverlay=hifiberry-dacplus-xr',
+    eepromMatch: 'HiFiBerry DAC+ XR',
     camilla: {
       device: 'plughw:CARD=sndrpihifiberry,DEV=0',
       format: 'S32LE'
@@ -116,7 +123,6 @@ export const SUPPORTED_HATS: Record<string, HatProfile> = {
   'hifiberry-amp2': {
     id: 'hifiberry-amp2',
     name: 'HiFiBerry Amp2 / Amp4',
-    // Uses DAC+ Standard overlay on newer kernels
     overlay: 'dtoverlay=hifiberry-dacplus-std',
     eepromMatch: 'HiFiBerry Amp2', 
     camilla: {
@@ -190,10 +196,81 @@ export const SUPPORTED_HATS: Record<string, HatProfile> = {
       format: 'S32LE'
     }
   },
+  'iqaudio-dac': {
+    id: 'iqaudio-dac',
+    name: 'IQaudIO Pi-DAC Zero / Pi-DAC+ (non-Pro)',
+    overlay: 'dtoverlay=iqaudio-dac',
+    eepromMatch: 'IQaudIO Limited',
+    camilla: {
+      device: 'hw:1,0',
+      format: 'S32LE'
+    }
+  },
+  'iqaudio-digi': {
+    id: 'iqaudio-digi',
+    name: 'IQaudIO Pi-Digi+',
+    overlay: 'dtoverlay=iqaudio-digi-wm8804',
+    eepromMatch: 'IQaudIO Pi-Digi+',
+    camilla: {
+      device: 'hw:1,0',
+      format: 'S24LE3'
+    }
+  },
+  'iqaudio-codec': {
+    id: 'iqaudio-codec',
+    name: 'IQaudIO Pi-Codec / Pi-Codec+',
+    overlay: 'dtoverlay=iqaudio-codec',
+    eepromMatch: 'IQaudIO Pi-Codec',
+    camilla: {
+      device: 'hw:1,0',
+      format: 'S32LE'
+    }
+  },
+  'iqaudio-digiamp-plus': {
+    id: 'iqaudio-digiamp-plus',
+    name: 'IQaudIO Pi-DigiAMP+',
+    overlay: 'dtoverlay=iqaudio-digiampplus,unmute_amp',
+    eepromMatch: 'IQaudIO Pi-DigiAMP+',
+    camilla: {
+      device: 'hw:1,0',
+      format: 'S32LE'
+    }
+  },
+  'rpi-dacpro': {
+    id: 'rpi-dacpro',
+    name: 'Raspberry Pi DAC Pro',
+    overlay: 'dtoverlay=rpi-dacpro',
+    eepromMatch: 'Raspberry Pi DAC Pro',
+    camilla: {
+      device: 'hw:1,0',
+      format: 'S32LE'
+    }
+  },
+  'rpi-dacplus': {
+    id: 'rpi-dacplus',
+    name: 'Raspberry Pi DAC+',
+    overlay: 'dtoverlay=rpi-dacplus',
+    eepromMatch: 'Raspberry Pi DAC+',
+    camilla: {
+      device: 'hw:1,0',
+      format: 'S32LE'
+    }
+  },
+  'rpi-codeczero': {
+    id: 'rpi-codeczero',
+    name: 'Raspberry Pi Codec Zero',
+    overlay: 'dtoverlay=rpi-codeczero',
+    eepromMatch: 'Raspberry Pi Codec Zero',
+    camilla: {
+      device: 'hw:1,0',
+      format: 'S32LE'
+    }
+  },
   'rpi-digiamp-plus': {
     id: 'rpi-digiamp-plus',
     name: 'Raspberry Pi DigiAMP+',
-    overlay: 'dtoverlay=iqaudio-digiamp-plus,unmute_amp',
+    // Official Raspberry Pi-branded overlay (green PCB), distinct from the IQaudIO (black PCB) variant
+    overlay: 'dtoverlay=rpi-digiampplus,unmute_amp',
     eepromMatch: 'Raspberry Pi DigiAMP+',
     camilla: {
       device: 'hw:1,0',
@@ -204,7 +281,6 @@ export const SUPPORTED_HATS: Record<string, HatProfile> = {
     id: 'usb-dac',
     name: 'Generic USB DAC',
     overlay: '# No overlay needed for USB',
-    // Kein eepromMatch, da USB
     camilla: {
       device: 'hw:1,0',
       format: 'S16LE'
