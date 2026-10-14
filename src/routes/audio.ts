@@ -1,12 +1,13 @@
 import { FastifyInstance } from 'fastify';
 import { ConfigService } from '../services/config.service';
-import { CamillaService } from '../services/camilla.service';
+import { CamillaService, PREAMP_CAMILLA_OPTIONS } from '../services/camilla.service';
 import { DetectionService } from '../services/detection.service';
 import { SUPPORTED_HATS } from '../types/hats';
 import { exec } from 'child_process';
 
 const configService = new ConfigService();
 const camillaService = new CamillaService();
+const preampCamillaService = new CamillaService(PREAMP_CAMILLA_OPTIONS);
 const detectionService = new DetectionService();
 
 export async function audioRoutes(fastify: FastifyInstance) {
@@ -63,14 +64,61 @@ export async function audioRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // Preamp CamillaDSP instance (camilladsp/preamp), same logic as the main instance.
+  // No HAT patching here: the preamp plays back into a Snapcast pipe, not a HAT.
+
+  // GET /api/hardware/camilla/preamp/configs
+  fastify.get('/camilla/preamp/configs', async (request, reply) => {
+    try {
+      const configs = await preampCamillaService.listAvailableConfigs();
+      return { configs };
+    } catch (error) {
+      request.log.error(error);
+      return reply.code(500).send({ error: 'Failed to list preamp CamillaDSP configs' });
+    }
+  });
+
+  // GET /api/hardware/camilla/preamp/configs/default
+  fastify.get('/camilla/preamp/configs/default', async (request, reply) => {
+    try {
+      const fileName = await preampCamillaService.getDefaultConfig();
+      return { fileName };
+    } catch (error) {
+      request.log.error(error);
+      return reply.code(500).send({ error: 'Failed to get default preamp CamillaDSP config' });
+    }
+  });
+
+  // PUT /api/hardware/camilla/preamp/configs/default
+  // Body: { fileName: 'vinyl.yml' }
+  fastify.put<{ Body: { fileName: string } }>('/camilla/preamp/configs/default', async (request, reply) => {
+    const { fileName } = request.body || {};
+
+    if (!fileName || typeof fileName !== 'string') {
+      return reply.code(400).send({ error: 'fileName is required' });
+    }
+
+    try {
+      await preampCamillaService.setDefaultConfig(fileName);
+      await preampCamillaService.restartService();
+      return { status: 'success', fileName, camillaRestarted: true };
+    } catch (error) {
+      request.log.error(error);
+      const message = error instanceof Error ? error.message : 'Failed to set default preamp CamillaDSP config';
+      return reply.code(400).send({ error: message });
+    }
+  });
+
   // GET /api/hardware/status
   // Gibt zurück: Was ist eingestellt? Was wurde erkannt?
   fastify.get('/status', async () => {
-    const [active, detected, eepromDisabled, camillaConfigFile] = await Promise.all([
+    const [active, detected, eepromDisabled, camillaConfigFile, preampConfigFile] = await Promise.all([
       configService.getActiveConfig(),
       detectionService.detectConnectedHat(),
       configService.isEepromReadDisabled(),
-      camillaService.getDefaultConfig()
+      camillaService.getDefaultConfig(),
+      // Preamp is optional, a missing setup must not break the status route
+      preampCamillaService.getDefaultConfig().catch(() => null)
     ]);
 
     return {
@@ -78,7 +126,8 @@ export async function audioRoutes(fastify: FastifyInstance) {
       detectedHardware: detected,
       isMatch: active?.id === detected?.id,
       eepromReadDisabled: eepromDisabled,
-      camillaConfigFile
+      camillaConfigFile,
+      preampConfigFile
     };
   });
 

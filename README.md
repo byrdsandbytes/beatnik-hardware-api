@@ -23,7 +23,12 @@ Base URL: `http://localhost:3000`
 | GET | `/camilla/configs` | List CamillaDSP config files |
 | GET | `/camilla/configs/default` | Get the active CamillaDSP config |
 | PUT | `/camilla/configs/default` | Set the active config: `{ "fileName": "..." }` |
+| GET | `/camilla/preamp/configs` | List preamp CamillaDSP config files (`~/camilladsp/preamp`) |
+| GET | `/camilla/preamp/configs/default` | Get the active preamp config |
+| PUT | `/camilla/preamp/configs/default` | Set the active preamp config and restart the preamp service: `{ "fileName": "vinyl.yml" }` |
 | POST | `/reboot` | Reboot the Pi |
+
+`/status` also returns `preampConfigFile` (`null` if no preamp instance is set up). The preamp instance works like the main one: the active config is the symlink `client_config.yml` in its config folder, which the preamp service must use as its config file. HAT settings are not applied to it.
 
 ### System (`/api/system`)
 | Method | Path | Description |

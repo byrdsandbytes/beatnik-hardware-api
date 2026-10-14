@@ -75,6 +75,9 @@ Anything that needs `systemctl`, `docker`, or Avahi (Snapcast, update routes, mD
 | `CAMILLA_CONFIG_DIR` | `/home/beatnik/camilladsp/configs` | CamillaDSP config directory |
 | `CAMILLA_CONFIG_PATH` | `<CAMILLA_CONFIG_DIR>/client_config.yml` | Active CamillaDSP config (symlink) |
 | `CAMILLA_SERVICE_NAME` | `camilladsp` | systemd service restarted after config changes |
+| `CAMILLA_PREAMP_CONFIG_DIR` | `/home/beatnik/camilladsp/preamp` | Preamp CamillaDSP config directory |
+| `CAMILLA_PREAMP_CONFIG_PATH` | `<CAMILLA_PREAMP_CONFIG_DIR>/client_config.yml` | Active preamp config (symlink) |
+| `CAMILLA_PREAMP_SERVICE_NAME` | `camilladsp-preamp` | systemd service restarted after preamp config changes |
 | `AVAHI_SERVICE_DIR` | `/etc/avahi/services` | Where the mDNS service file is written |
 | `BEATNIK_USER` | `beatnik` | User that owns the Beatnik repositories (update routes) |
 | `BEATNIK_HOME` | `/home/<BEATNIK_USER>` | Directory containing the Beatnik repositories (update routes) |
