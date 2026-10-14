@@ -119,7 +119,7 @@ export class UpdateService {
       const output = tail(`${error?.stdout ?? ''}\n${error?.stderr ?? ''}`);
       Object.assign(status, {
         state: 'failed',
-        message: error instanceof Error ? error.message.split('\n')[0] : 'Update failed',
+        message: this.failureMessage(error),
         output,
       });
       console.error(`Update of ${target} failed:`, error);
@@ -127,6 +127,12 @@ export class UpdateService {
     } finally {
       status.finishedAt = new Date().toISOString();
     }
+  }
+
+  private failureMessage(error: any): string {
+    const lastStderrLine = String(error?.stderr ?? '').trim().split('\n').pop();
+    if (lastStderrLine) return lastStderrLine;
+    return error instanceof Error ? error.message.split('\n')[0] : 'Update failed';
   }
 
   private async execute(target: UpdateTarget): Promise<{ message: string; output?: string }> {
@@ -167,11 +173,56 @@ export class UpdateService {
     return { message: 'CamillaDSP repository updated', output };
   }
 
+  /** Runs docker with root privileges (via sudo when not already root). */
+  private async docker(args: string[], cwd?: string) {
+    const isRoot = typeof process.getuid === 'function' && process.getuid() === 0;
+    const [file, fileArgs] = isRoot ? ['docker', args] : ['sudo', ['-n', 'docker', ...args]];
+    return execFileAsync(file, fileArgs, {
+      cwd,
+      timeout: UPDATE_TIMEOUT_MS,
+      maxBuffer: 10 * 1024 * 1024,
+    });
+  }
+
   private async updateController() {
+    const dir = DIRS.controller;
+    const hasCompose = await fs
+      .access(path.join(dir, 'docker-compose.yml'))
+      .then(() => true, () => false);
+
+    return hasCompose ? this.updateControllerWithCompose(dir) : this.updateControllerWithPull();
+  }
+
+  /** Pulls the image and recreates the container if the image changed. */
+  private async updateControllerWithCompose(dir: string) {
+    const containerImageId = async () => {
+      try {
+        const { stdout } = await this.docker(['inspect', '--format', '{{.Image}}', CONTROLLER_CONTAINER]);
+        return stdout.trim();
+      } catch {
+        return '';
+      }
+    };
+
+    const before = await containerImageId();
+    const pull = await this.docker(['compose', 'pull'], dir);
+    const up = await this.docker(['compose', 'up', '-d'], dir);
+    const after = await containerImageId();
+
+    return {
+      message: before !== after
+        ? 'Controller updated and container recreated'
+        : 'Controller is already up to date',
+      output: tail(`${pull.stdout}\n${pull.stderr}\n${up.stdout}\n${up.stderr}`),
+    };
+  }
+
+  /** Fallback when there is no docker-compose.yml: pull only, the container is not recreated. */
+  private async updateControllerWithPull() {
     const image = await this.getControllerImage();
     const imageId = async () => {
       try {
-        const { stdout } = await execFileAsync('sudo', ['-n', 'docker', 'image', 'inspect', '--format', '{{.Id}}', image]);
+        const { stdout } = await this.docker(['image', 'inspect', '--format', '{{.Id}}', image]);
         return stdout.trim();
       } catch {
         return '';
@@ -179,15 +230,11 @@ export class UpdateService {
     };
 
     const before = await imageId();
-    const { stdout, stderr } = await execFileAsync('sudo', ['-n', 'docker', 'pull', image], {
-      timeout: UPDATE_TIMEOUT_MS,
-      maxBuffer: 10 * 1024 * 1024,
-    });
+    const { stdout, stderr } = await this.docker(['pull', image]);
     const after = await imageId();
 
-    const changed = before !== after;
     return {
-      message: changed
+      message: before !== after
         ? `Pulled new controller image ${image}. Recreate the container to use it.`
         : `Controller image ${image} is already up to date`,
       output: tail(`${stdout}\n${stderr}`),
@@ -197,9 +244,7 @@ export class UpdateService {
   private async getControllerImage(): Promise<string> {
     if (process.env.CONTROLLER_IMAGE) return process.env.CONTROLLER_IMAGE;
     try {
-      const { stdout } = await execFileAsync('sudo', [
-        '-n', 'docker', 'inspect', '--format', '{{.Config.Image}}', CONTROLLER_CONTAINER,
-      ]);
+      const { stdout } = await this.docker(['inspect', '--format', '{{.Config.Image}}', CONTROLLER_CONTAINER]);
       const image = stdout.trim();
       if (image) return image;
     } catch {

@@ -47,7 +47,7 @@ Updates run in the background (`202 Accepted`); poll `/status`. Only one update 
 |---|---|---|
 | GET | `/status` | `{ busy, targets[] }` – state and log tail of the last update per target |
 | POST | `/bleno` | Run `setup.sh` in `~/beatnik-bleno` |
-| POST | `/controller` | `docker pull` the image of the `beatnik-controller` container (recreate the container to use it) |
+| POST | `/controller` | `docker compose pull` + `docker compose up -d` in `~/beatnik-controller` (recreates the container if the image changed). Without a `docker-compose.yml` it only runs `docker pull` on the image of the `beatnik-controller` container |
 | POST | `/camilladsp` | `git pull --ff-only origin master` in `~/camilladsp` |
 | POST | `/api` | Run `setup.sh` of this API in a transient systemd unit (the service restarts) |
 | POST | `/all` | All of the above in order, API last |
