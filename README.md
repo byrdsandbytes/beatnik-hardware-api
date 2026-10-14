@@ -8,7 +8,7 @@ Microservice for managing audio hardware, Snapcast, and system settings on a Ras
 
 ## Installation
 
-See the [Installation & Updating Guide](INSTALL.md) for setup, updates, and systemd configuration.
+See the [Installation & Updating Guide](INSTALL.md) for setup, updates, and systemd configuration. To remove the service, see the [Uninstall Guide](UNINSTALL.md). Developers: see [Build from Source](BUILD_FROM_SOURCE.md).
 
 ## API
 
@@ -39,6 +39,20 @@ Base URL: `http://localhost:3000`
 | POST | `/disable` | Disable Snapserver |
 | POST | `/restart-server` | Restart Snapserver |
 | POST | `/restart-client` | Restart Snapclient |
+
+### Update (`/api/update`)
+Updates run in the background (`202 Accepted`); poll `/status`. Only one update runs at a time (`409` otherwise). Repositories are expected in `$BEATNIK_HOME` (default `/home/beatnik`).
+
+| Method | Path | Description |
+|---|---|---|
+| GET | `/status` | `{ busy, targets[] }` – state and log tail of the last update per target |
+| POST | `/bleno` | Run `setup.sh` in `~/beatnik-bleno` |
+| POST | `/controller` | `docker pull` the image of the `beatnik-controller` container (recreate the container to use it) |
+| POST | `/camilladsp` | `git pull --ff-only origin master` in `~/camilladsp` |
+| POST | `/api` | Run `setup.sh` of this API in a transient systemd unit (the service restarts) |
+| POST | `/all` | All of the above in order, API last |
+
+Optional env vars: `BEATNIK_USER`, `BEATNIK_HOME`, `CONTROLLER_CONTAINER`, `CONTROLLER_IMAGE`. See `examples/update.service.ts` for an Angular client.
 
 Example:
 ```bash

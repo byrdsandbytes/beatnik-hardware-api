@@ -3,6 +3,7 @@ import cors from '@fastify/cors';
 import { audioRoutes } from './routes/audio';
 import { snapcastRoutes } from './routes/snapcast';
 import { systemRoutes } from './routes/system';
+import { updateRoutes } from './routes/update';
 import { mdnsService } from './services/mdns.service';
 
 const server = Fastify({
@@ -18,6 +19,7 @@ server.register(cors, {
 server.register(audioRoutes, { prefix: '/api/hardware' });
 server.register(systemRoutes, { prefix: '/api/system' });
 server.register(snapcastRoutes, { prefix: '/api/snapcast' });
+server.register(updateRoutes, { prefix: '/api/update' });
 
 const start = async () => {
   try {
