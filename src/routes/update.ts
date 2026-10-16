@@ -7,7 +7,7 @@ export async function updateRoutes(fastify: FastifyInstance) {
     return { busy: updateService.isBusy(), targets: updateService.getStatus() };
   });
 
-  // Start an update in the background: bleno | controller | camilladsp | api | all
+  // Start an update in the background: bleno | controller | api | all
   fastify.post<{ Params: { target: string } }>('/:target', async (request, reply) => {
     const { target } = request.params;
     if (target !== 'all' && !UPDATE_TARGETS.includes(target as any)) {

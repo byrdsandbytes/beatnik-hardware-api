@@ -51,4 +51,4 @@ sudo apt-get install --allow-downgrades ./beatnik-hardware-api_<older-version>_a
 ## Notes
 
 - Updates are manual; the package does not add an apt repository.
-- The in-app update route (`/api/update/api`) runs `setup.sh`, which belongs to the script install. Do not use it on a package install.
+- The in-app update route (`POST /api/update/api`) performs the same steps automatically: it downloads the latest `.deb` from GitHub and installs it with `apt-get` (keeping edited service files). It requires the package install; for the script install use `./setup.sh`.

@@ -1,0 +1,165 @@
+# CamillaDSP Bi-Amp Configuration for Left Pioneer CS-E500 Speaker
+# This config isolates the LEFT input channel (0), splits it into two outputs,
+# and applies a 2-way active crossover alongside driver-specific EQ.
+
+devices:
+  samplerate: 48000
+  chunksize: 1024
+  enable_rate_adjust: true
+  target_level: 1024
+  capture:
+    type: Alsa
+    channels: 2
+    device: "hw:Loopback,1,0"
+    format: S32LE
+  playback:
+    type: Alsa
+    channels: 2
+    device: "plughw:CARD=sndrpihifiberry,DEV=0" # IMPORTANT: Change to actual sound card
+    format: S16LE
+
+mixers:
+  # Extract the left channel (0) and send it to both outputs (Tweeter and Woofer)
+  extract_left:
+    channels:
+      in: 2
+      out: 2
+    mapping:
+      - dest: 0
+        sources:
+          - channel: 0
+            gain: 0
+      - dest: 1
+        sources:
+          - channel: 0
+            gain: 0
+
+  # OPTIONAL: Use this mixer to swap the final outputs if your amplifier cables
+  # are plugged into the wrong outputs (e.g. Tweeter goes to DAC Output 1 instead of 0).
+  swap_outputs:
+    channels:
+      in: 2
+      out: 2
+    mapping:
+      - dest: 0
+        sources:
+          - channel: 1
+            gain: 0
+      - dest: 1
+        sources:
+          - channel: 0
+            gain: 0
+
+filters:
+  # General
+  MasterVolume:
+    type: Gain
+    parameters:
+      gain: 0
+      mute: false
+
+  # Active Crossover
+  Tweeter_HPF:
+    type: BiquadCombo
+    parameters:
+      type: LinkwitzRileyHighpass
+      freq: 3300 # Estimated 3.3kHz crossover point
+      order: 4   # 24dB/octave slope
+
+  Woofer_LPF:
+    type: BiquadCombo
+    parameters:
+      type: LinkwitzRileyLowpass
+      freq: 3300 # Estimated 3.3kHz crossover point
+      order: 4   # 24dB/octave slope
+
+  # CS-E500 Specific EQs
+  Highpass:
+    type: Biquad
+    parameters:
+      type: Highpass
+      freq: 40
+      q: 0.7
+
+  TameBassBoom:
+    type: Biquad
+    parameters:
+      type: Peaking
+      freq: 120
+      q: 1.5
+      gain: -3.0
+
+  BoostMids:
+    type: Biquad
+    parameters:
+      type: Peaking
+      freq: 1500
+      q: 1.0
+      gain: 2.5
+
+  TameTrebleHarshness:
+    type: Biquad
+    parameters:
+      type: Peaking
+      freq: 5000
+      q: 2.0
+      gain: -2.0
+
+  # OPTIONAL: Bass Boost
+  # Active in pipeline, but set to 0 gain by default.
+  # Adjust 'gain' to taste (e.g., 6.0 for moderate, 12.0 for heavy).
+  OptionalBassBoost:
+    type: Biquad
+    parameters:
+      type: Lowshelf
+      freq: 150
+      q: 0.7
+      gain: 0.0
+
+  # OPTIONAL: Treble Adjust
+  # Active in pipeline, but set to 0 gain by default.
+  # Adjust 'gain' up or down to tune the highs (e.g., -3.0 to soften, 3.0 to brighten).
+  OptionalTrebleAdjust:
+    type: Biquad
+    parameters:
+      type: Highshelf
+      freq: 8000
+      q: 0.7
+      gain: 0.0
+
+pipeline:
+  - type: Mixer
+    name: extract_left
+
+  # Apply master volume to both channels
+  - type: Filter
+    channel: 0
+    names:
+      - MasterVolume
+  - type: Filter
+    channel: 1
+    names:
+      - MasterVolume
+
+  # Channel 0: Tweeter (Highs)
+  - type: Filter
+    channel: 0
+    names:
+      - Tweeter_HPF
+      - TameTrebleHarshness
+      - OptionalTrebleAdjust
+
+  # Channel 1: Woofer (Lows)
+  - type: Filter
+    channel: 1
+    names:
+      - Highpass
+      - Woofer_LPF
+      - TameBassBoom
+      - BoostMids
+      - OptionalBassBoost
+
+  # OPTIONAL: Flip outputs at the very end
+  - type: Mixer
+    name: swap_outputs
+

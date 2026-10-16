@@ -20,10 +20,10 @@ Base URL: `http://localhost:3000`
 | GET | `/status` | Current & detected HAT, active CamillaDSP config |
 | GET | `/hats` | List supported HATs |
 | POST | `/apply` | Apply a HAT: `{ "hatId": "hifiberry-amp" }` |
-| GET | `/camilla/configs` | List CamillaDSP config files |
+| GET | `/camilla/configs` | List CamillaDSP config files (bundled defaults in [camilladsp/](camilladsp), copied to `/var/lib/beatnik-hardware-api/camilladsp` on start) |
 | GET | `/camilla/configs/default` | Get the active CamillaDSP config |
 | PUT | `/camilla/configs/default` | Set the active config: `{ "fileName": "..." }` |
-| GET | `/camilla/preamp/configs` | List preamp CamillaDSP config files (`~/camilladsp/preamp`) |
+| GET | `/camilla/preamp/configs` | List preamp CamillaDSP config files (`/var/lib/beatnik-hardware-api/camilladsp/preamp`) |
 | GET | `/camilla/preamp/configs/default` | Get the active preamp config |
 | PUT | `/camilla/preamp/configs/default` | Set the active preamp config and restart the preamp service: `{ "fileName": "vinyl.yml" }` |
 | POST | `/reboot` | Reboot the Pi |
@@ -46,15 +46,14 @@ Base URL: `http://localhost:3000`
 | POST | `/restart-client` | Restart Snapclient |
 
 ### Update (`/api/update`)
-Updates run in the background (`202 Accepted`); poll `/status`. Only one update runs at a time (`409` otherwise). Repositories are expected in `$BEATNIK_HOME` (default `/home/beatnik`).
+Updates run in the background (`202 Accepted`); poll `/status`. Only one update runs at a time (`409` otherwise). `bleno` and `api` require the Debian package to be installed (`404` otherwise); the controller repository is expected in `$BEATNIK_HOME` (default `/home/beatnik`). CamillaDSP configs ship with the API package, so there is no separate CamillaDSP update.
 
 | Method | Path | Description |
 |---|---|---|
 | GET | `/status` | `{ busy, targets[] }` – state and log tail of the last update per target |
-| POST | `/bleno` | Run `setup.sh` in `~/beatnik-bleno` |
+| POST | `/bleno` | Install the latest `beatnik-bleno` `.deb` release with apt (skipped if already up to date) |
 | POST | `/controller` | `docker compose pull` + `docker compose up -d` in `~/beatnik-controller` (recreates the container if the image changed). Without a `docker-compose.yml` it only runs `docker pull` on the image of the `beatnik-controller` container |
-| POST | `/camilladsp` | `git pull --ff-only origin master` in `~/camilladsp` |
-| POST | `/api` | Run `setup.sh` of this API in a transient systemd unit (the service restarts) |
+| POST | `/api` | Install the latest `beatnik-hardware-api` `.deb` release with apt in a transient systemd unit (the service restarts) |
 | POST | `/all` | All of the above in order, API last |
 
 Optional env vars: `BEATNIK_USER`, `BEATNIK_HOME`, `CONTROLLER_CONTAINER`, `CONTROLLER_IMAGE`. See `examples/update.service.ts` for an Angular client.

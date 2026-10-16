@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, timer } from 'rxjs';
 import { switchMap, takeWhile } from 'rxjs/operators';
 
-export type UpdateTarget = 'bleno' | 'controller' | 'camilladsp' | 'api';
+export type UpdateTarget = 'bleno' | 'controller' | 'api';
 export type UpdateState = 'idle' | 'running' | 'success' | 'failed';
 
 export interface UpdateStatus {

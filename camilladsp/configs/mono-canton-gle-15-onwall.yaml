@@ -1,0 +1,107 @@
+devices:
+  samplerate: 48000
+  chunksize: 1024
+  enable_rate_adjust: true
+  target_level: 1024
+  capture:
+    type: Alsa
+    channels: 2
+    device: plughw:Loopback,1,0
+    format: S16LE
+  playback:
+    type: Alsa
+    channels: 2
+    device: plughw:CARD=sndrpihifiberry,DEV=0
+    format: S32LE
+
+filters:
+  preamp:
+    type: Gain
+    parameters:
+      gain: -3.0
+      inverted: false
+      mute: false
+
+  subsonic:
+    type: Biquad
+    parameters:
+      type: Highpass
+      freq: 35
+      q: 0.707
+
+  boundary_bass_control:
+    type: Biquad
+    parameters:
+      type: Lowshelf
+      freq: 140
+      slope: 6
+      gain: -2.2
+
+  lowmid_cleanup:
+    type: Biquad
+    parameters:
+      type: Peaking
+      freq: 260
+      q: 1.0
+      gain: -1.2
+
+  presence_soften:
+    type: Biquad
+    parameters:
+      type: Peaking
+      freq: 3200
+      q: 1.0
+      gain: -1.0
+
+  top_end_trim:
+    type: Biquad
+    parameters:
+      type: Highshelf
+      freq: 9500
+      slope: 6
+      gain: -0.6
+
+mixers:
+  mono_sum:
+    channels:
+      in: 2
+      out: 2
+    mapping:
+      - dest: 0
+        sources:
+          - channel: 0
+            gain: -6.0
+            inverted: false
+          - channel: 1
+            gain: -6.0
+            inverted: false
+      - dest: 1
+        sources:
+          - channel: 0
+            gain: -6.0
+            inverted: false
+          - channel: 1
+            gain: -6.0
+            inverted: false
+
+pipeline:
+  - type: Mixer
+    name: mono_sum
+  - type: Filter
+    channel: 0
+    names:
+      - preamp
+      - subsonic
+      - boundary_bass_control
+      - lowmid_cleanup
+      - presence_soften
+      - top_end_trim
+  - type: Filter
+    channel: 1
+    names:
+      - preamp
+      - subsonic
+      - boundary_bass_control
+      - lowmid_cleanup
+      - presence_soften
+      - top_end_trim

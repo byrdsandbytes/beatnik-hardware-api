@@ -1,0 +1,17 @@
+[Unit]
+Description=CamillaDSP
+# snapclient feeds CamillaDSP; the hardware API seeds the config directory
+Wants=snapclient.service beatnik-hardware.service
+After=snapclient.service beatnik-hardware.service
+
+[Service]
+Type=simple
+# Runs as root like the hardware API, which owns and edits the configs
+User=root
+# Websocket on port 1234 for the GUI
+ExecStart=/usr/local/bin/camilladsp --address 0.0.0.0 --port 1234 /var/lib/beatnik-hardware-api/camilladsp/configs/client_config.yml
+Restart=always
+RestartSec=1
+
+[Install]
+WantedBy=multi-user.target

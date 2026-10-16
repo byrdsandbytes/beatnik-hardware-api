@@ -4,6 +4,7 @@ import { audioRoutes } from './routes/audio';
 import { snapcastRoutes } from './routes/snapcast';
 import { systemRoutes } from './routes/system';
 import { updateRoutes } from './routes/update';
+import { seedCamillaConfigs } from './services/camilla.service';
 import { mdnsService } from './services/mdns.service';
 
 const server = Fastify({
@@ -23,6 +24,12 @@ server.register(updateRoutes, { prefix: '/api/update' });
 
 const start = async () => {
   try {
+    try {
+      await seedCamillaConfigs();
+    } catch (err) {
+      server.log.error(err, 'Failed to seed CamillaDSP configs');
+    }
+
     // Port 3000 ist Standard für interne Microservices
     // Host 0.0.0.0 erlaubt Zugriff vom Controller Container oder LAN
     await server.listen({ port: 3000, host: '0.0.0.0' });
