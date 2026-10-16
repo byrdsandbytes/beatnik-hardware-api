@@ -5,7 +5,7 @@ import { promisify } from 'util';
 
 const execFileAsync = promisify(execFile);
 
-export type UpdateTarget = 'bleno' | 'controller' | 'camilladsp' | 'api';
+export type UpdateTarget = 'bleno' | 'controller' | 'api';
 export type UpdateRequest = UpdateTarget | 'all';
 export type UpdateState = 'idle' | 'running' | 'success' | 'failed';
 
@@ -24,21 +24,20 @@ export class UpdateError extends Error {
   }
 }
 
-// The API runs as root, but the controller and CamillaDSP repositories live in the beatnik user's home directory
+// The API runs as root, but the controller lives in the beatnik user's home directory
 const BEATNIK_USER = process.env.BEATNIK_USER || 'beatnik';
 const BEATNIK_HOME = process.env.BEATNIK_HOME || `/home/${BEATNIK_USER}`;
 const CONTROLLER_CONTAINER = process.env.CONTROLLER_CONTAINER || 'beatnik-controller';
 const UPDATE_TIMEOUT_MS = 10 * 60 * 1000;
 const MAX_OUTPUT_CHARS = 4000;
 
-export const UPDATE_TARGETS: UpdateTarget[] = ['bleno', 'controller', 'camilladsp', 'api'];
+export const UPDATE_TARGETS: UpdateTarget[] = ['bleno', 'controller', 'api'];
 
 // The API itself goes last because its update restarts this process
-const ALL_ORDER: UpdateTarget[] = ['bleno', 'controller', 'camilladsp', 'api'];
+const ALL_ORDER: UpdateTarget[] = ['bleno', 'controller', 'api'];
 
 const DIRS = {
   controller: path.join(BEATNIK_HOME, 'beatnik-controller'),
-  camilladsp: path.join(BEATNIK_HOME, 'camilladsp'),
 };
 
 // Targets installed as Debian packages and updated from the latest GitHub release
@@ -104,13 +103,6 @@ export class UpdateService {
       }
       return;
     }
-
-    const gitDir = path.join(DIRS.camilladsp, '.git');
-    try {
-      await fs.access(gitDir);
-    } catch {
-      throw new UpdateError(`Cannot update ${target}: ${gitDir} not found`, 404);
-    }
   }
 
   private async runSequence(targets: UpdateTarget[]): Promise<void> {
@@ -163,29 +155,7 @@ export class UpdateService {
         return this.updateDeb(target);
       case 'controller':
         return this.updateController();
-      case 'camilladsp':
-        return this.updateCamilla();
     }
-  }
-
-  /** Runs a command as the beatnik user (the API itself runs as root). */
-  private async asUser(cmd: string, args: string[], cwd: string) {
-    const isRoot = typeof process.getuid === 'function' && process.getuid() === 0;
-    const [file, fileArgs] = isRoot
-      ? ['sudo', ['-n', '-u', BEATNIK_USER, '-H', cmd, ...args]]
-      : [cmd, args];
-    const { stdout, stderr } = await execFileAsync(file, fileArgs, {
-      cwd,
-      timeout: UPDATE_TIMEOUT_MS,
-      maxBuffer: 10 * 1024 * 1024,
-    });
-    return tail(`${stdout}\n${stderr}`);
-  }
-
-  private async updateCamilla() {
-    const dir = DIRS.camilladsp;
-    const output = await this.asUser('git', ['pull', '--ff-only', 'origin', 'master'], dir);
-    return { message: 'CamillaDSP repository updated', output };
   }
 
   /** Runs docker with root privileges (via sudo when not already root). */

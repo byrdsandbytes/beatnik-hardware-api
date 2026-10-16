@@ -4,16 +4,14 @@
 The goal is to add a route so the following dependencies get updated on the device using the Hardware API.
 - Beatnik Bleno
 - Beatnik Controller Docker
-- CamillaDSP repo
 - Beatnik Hardware API itself
 
 
 ##
 All the relevant files are located in the user directory.
-- Beatnik Bleno -> trigger setup.sh
+- Beatnik Bleno -> trigger debian update
 - Beatnik Controller Docker -> docker pull
-- CamillaDSP repo -> git pull latest master
-- Beatnik Hardware API itself -> trigger debian updta
+- Beatnik Hardware API itself -> trigger debian update
 
 ##
 Create a new service and routes. Also create an example for usage like the snapcast.service.ts

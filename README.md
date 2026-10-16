@@ -46,14 +46,13 @@ Base URL: `http://localhost:3000`
 | POST | `/restart-client` | Restart Snapclient |
 
 ### Update (`/api/update`)
-Updates run in the background (`202 Accepted`); poll `/status`. Only one update runs at a time (`409` otherwise). `bleno` and `api` require the Debian package to be installed (`404` otherwise); the controller and CamillaDSP repositories are expected in `$BEATNIK_HOME` (default `/home/beatnik`).
+Updates run in the background (`202 Accepted`); poll `/status`. Only one update runs at a time (`409` otherwise). `bleno` and `api` require the Debian package to be installed (`404` otherwise); the controller repository is expected in `$BEATNIK_HOME` (default `/home/beatnik`). CamillaDSP configs ship with the API package, so there is no separate CamillaDSP update.
 
 | Method | Path | Description |
 |---|---|---|
 | GET | `/status` | `{ busy, targets[] }` – state and log tail of the last update per target |
 | POST | `/bleno` | Install the latest `beatnik-bleno` `.deb` release with apt (skipped if already up to date) |
 | POST | `/controller` | `docker compose pull` + `docker compose up -d` in `~/beatnik-controller` (recreates the container if the image changed). Without a `docker-compose.yml` it only runs `docker pull` on the image of the `beatnik-controller` container |
-| POST | `/camilladsp` | `git pull --ff-only origin master` in `~/camilladsp` |
 | POST | `/api` | Install the latest `beatnik-hardware-api` `.deb` release with apt in a transient systemd unit (the service restarts) |
 | POST | `/all` | All of the above in order, API last |
 
