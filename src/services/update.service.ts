@@ -24,7 +24,7 @@ export class UpdateError extends Error {
   }
 }
 
-// The API runs as root, but all repositories live in the beatnik user's home directory
+// The API runs as root, but the controller and CamillaDSP repositories live in the beatnik user's home directory
 const BEATNIK_USER = process.env.BEATNIK_USER || 'beatnik';
 const BEATNIK_HOME = process.env.BEATNIK_HOME || `/home/${BEATNIK_USER}`;
 const CONTROLLER_CONTAINER = process.env.CONTROLLER_CONTAINER || 'beatnik-controller';
@@ -36,12 +36,25 @@ export const UPDATE_TARGETS: UpdateTarget[] = ['bleno', 'controller', 'camillads
 // The API itself goes last because its update restarts this process
 const ALL_ORDER: UpdateTarget[] = ['bleno', 'controller', 'camilladsp', 'api'];
 
-const DIRS: Record<UpdateTarget, string> = {
-  bleno: path.join(BEATNIK_HOME, 'beatnik-bleno'),
+const DIRS = {
   controller: path.join(BEATNIK_HOME, 'beatnik-controller'),
   camilladsp: path.join(BEATNIK_HOME, 'camilladsp'),
-  api: path.join(BEATNIK_HOME, 'beatnik-hardware-api'),
 };
+
+// Targets installed as Debian packages and updated from the latest GitHub release
+interface DebTarget {
+  packageName: string;
+  repo: string;
+  // The API restarts itself during the update, so apt must run outside this service
+  detached: boolean;
+}
+
+const DEB_TARGETS: Partial<Record<UpdateTarget, DebTarget>> = {
+  bleno: { packageName: 'beatnik-bleno', repo: 'byrdsandbytes/beatnik-bleno', detached: false },
+  api: { packageName: 'beatnik-hardware-api', repo: 'byrdsandbytes/beatnik-hardware-api', detached: true },
+};
+
+const DOWNLOAD_DIR = '/tmp/beatnik-update';
 
 const tail = (text: string) => text.trim().slice(-MAX_OUTPUT_CHARS);
 
@@ -70,8 +83,7 @@ export class UpdateService {
 
     const targets = request === 'all' ? ALL_ORDER : [request];
     for (const target of targets) {
-      if (target === 'controller') continue; // Docker only needs the container, not a directory
-      await this.assertSetupAvailable(target);
+      await this.assertAvailable(target);
     }
 
     this.busy = true;
@@ -82,13 +94,22 @@ export class UpdateService {
     return targets;
   }
 
-  private async assertSetupAvailable(target: UpdateTarget): Promise<void> {
-    const dir = DIRS[target];
-    const required = target === 'camilladsp' ? '.git' : 'setup.sh';
+  private async assertAvailable(target: UpdateTarget): Promise<void> {
+    if (target === 'controller') return; // Docker only needs the container, not a directory
+
+    if (DEB_TARGETS[target]) {
+      const { packageName } = DEB_TARGETS[target]!;
+      if (!(await this.getInstalledVersion(packageName))) {
+        throw new UpdateError(`Cannot update ${target}: package ${packageName} is not installed`, 404);
+      }
+      return;
+    }
+
+    const gitDir = path.join(DIRS.camilladsp, '.git');
     try {
-      await fs.access(path.join(dir, required));
+      await fs.access(gitDir);
     } catch {
-      throw new UpdateError(`Cannot update ${target}: ${path.join(dir, required)} not found`, 404);
+      throw new UpdateError(`Cannot update ${target}: ${gitDir} not found`, 404);
     }
   }
 
@@ -138,13 +159,12 @@ export class UpdateService {
   private async execute(target: UpdateTarget): Promise<{ message: string; output?: string }> {
     switch (target) {
       case 'bleno':
-        return this.updateViaSetup(target);
+      case 'api':
+        return this.updateDeb(target);
       case 'controller':
         return this.updateController();
       case 'camilladsp':
         return this.updateCamilla();
-      case 'api':
-        return this.updateApi();
     }
   }
 
@@ -160,11 +180,6 @@ export class UpdateService {
       maxBuffer: 10 * 1024 * 1024,
     });
     return tail(`${stdout}\n${stderr}`);
-  }
-
-  private async updateViaSetup(target: UpdateTarget) {
-    const output = await this.asUser('bash', ['setup.sh'], DIRS[target]);
-    return { message: `${target} updated`, output };
   }
 
   private async updateCamilla() {
@@ -255,37 +270,103 @@ export class UpdateService {
     );
   }
 
-  /**
-   * setup.sh stops and restarts this very service, so it must run outside this
-   * service's cgroup (transient systemd unit) and from a copy of the script,
-   * because the script overwrites its own directory.
-   */
-  private async updateApi() {
-    const dir = DIRS.api;
-    const scriptCopy = '/tmp/beatnik-api-update.sh';
-    await fs.copyFile(path.join(dir, 'setup.sh'), scriptCopy);
-    await fs.chmod(scriptCopy, 0o755);
-
-    const isRoot = typeof process.getuid === 'function' && process.getuid() === 0;
-    const unit = `beatnik-api-update-${Date.now()}`;
-    const systemdRunArgs = [
-      `--unit=${unit}`,
-      '--collect',
-      `--uid=${BEATNIK_USER}`,
-      `--working-directory=${dir}`,
-      `--setenv=HOME=${BEATNIK_HOME}`,
-      'bash',
-      scriptCopy,
-    ];
-
-    if (isRoot) {
-      await execFileAsync('systemd-run', systemdRunArgs, { timeout: 30_000 });
-    } else {
-      await execFileAsync('sudo', ['-n', 'systemd-run', ...systemdRunArgs], { timeout: 30_000 });
+  private async getInstalledVersion(packageName: string): Promise<string | null> {
+    try {
+      const { stdout } = await execFileAsync('dpkg-query', ['-W', '-f=${Version}', packageName]);
+      return stdout.trim() || null;
+    } catch {
+      return null;
     }
+  }
+
+  private async getArchitecture(): Promise<string> {
+    const { stdout } = await execFileAsync('dpkg', ['--print-architecture']);
+    return stdout.trim();
+  }
+
+  /** Finds the latest release and the .deb asset matching this device's architecture. */
+  private async getLatestDeb(target: DebTarget): Promise<{ version: string; name: string; url: string }> {
+    const response = await fetch(`https://api.github.com/repos/${target.repo}/releases/latest`, {
+      headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'beatnik-hardware-api' },
+      signal: AbortSignal.timeout(30_000),
+    });
+    if (!response.ok) {
+      throw new Error(`GitHub release lookup failed (HTTP ${response.status})`);
+    }
+
+    const release = (await response.json()) as {
+      tag_name: string;
+      assets: { name: string; browser_download_url: string }[];
+    };
+    const version = release.tag_name.replace(/^v/, '');
+    const arch = await this.getArchitecture();
+    const asset = release.assets.find(
+      (a) => a.name.startsWith(`${target.packageName}_`) && (a.name.endsWith(`_${arch}.deb`) || a.name.endsWith('_all.deb'))
+    );
+    if (!asset) {
+      throw new Error(`No ${target.packageName} .deb for ${arch} found in release ${release.tag_name}`);
+    }
+    return { version, name: asset.name, url: asset.browser_download_url };
+  }
+
+  private async download(url: string, name: string): Promise<string> {
+    await fs.mkdir(DOWNLOAD_DIR, { recursive: true, mode: 0o755 });
+    const filePath = path.join(DOWNLOAD_DIR, path.basename(name));
+
+    const response = await fetch(url, { signal: AbortSignal.timeout(UPDATE_TIMEOUT_MS) });
+    if (!response.ok) {
+      throw new Error(`Download failed (HTTP ${response.status})`);
+    }
+    await fs.writeFile(filePath, Buffer.from(await response.arrayBuffer()));
+    await fs.chmod(filePath, 0o644);
+    return filePath;
+  }
+
+  /**
+   * Downloads the latest release .deb and installs it with apt, which upgrades the
+   * package in place and restarts its service (same as the manual update guides).
+   */
+  private async updateDeb(target: UpdateTarget) {
+    const deb = DEB_TARGETS[target]!;
+    const installed = await this.getInstalledVersion(deb.packageName);
+    const latest = await this.getLatestDeb(deb);
+
+    if (installed === latest.version) {
+      return { message: `${deb.packageName} is already up to date (${installed})` };
+    }
+
+    const filePath = await this.download(latest.url, latest.name);
+    const aptArgs = [
+      'install', '-y',
+      '-o', 'Dpkg::Options::=--force-confold', // keep locally edited service files, no prompt
+      filePath,
+    ];
+    const isRoot = typeof process.getuid === 'function' && process.getuid() === 0;
+    const sudo = isRoot ? [] : ['sudo', '-n'];
+
+    if (deb.detached) {
+      // Own systemd unit so apt survives the restart of this service
+      const unit = `beatnik-api-update-${Date.now()}`;
+      const [file, ...prefix] = [...sudo, 'systemd-run'];
+      await execFileAsync(
+        file,
+        [...prefix, `--unit=${unit}`, '--collect', '--setenv=DEBIAN_FRONTEND=noninteractive', 'apt-get', ...aptArgs],
+        { timeout: 30_000 }
+      );
+      return {
+        message: `Updating ${deb.packageName} ${installed} -> ${latest.version}. The service will restart shortly.`,
+        output: `Running as systemd unit ${unit}. Follow with: journalctl -u ${unit}`,
+      };
+    }
+
+    const [file, ...prefix] = [...sudo, 'env', 'DEBIAN_FRONTEND=noninteractive', 'apt-get'];
+    const { stdout, stderr } = await execFileAsync(file, [...prefix, ...aptArgs], {
+      timeout: UPDATE_TIMEOUT_MS,
+      maxBuffer: 10 * 1024 * 1024,
+    });
     return {
-      message: 'Hardware API update started. The service will restart shortly.',
-      output: `Running as systemd unit ${unit}. Follow with: journalctl -u ${unit}`,
+      message: `${deb.packageName} updated ${installed} -> ${latest.version}`,
+      output: tail(`${stdout}\n${stderr}`),
     };
   }
 }

@@ -65,7 +65,7 @@ CAMILLA_CONFIG_PATH=./test-camilla.yml \
 npm run dev
 ```
 
-Anything that needs `systemctl`, `docker`, or Avahi (Snapcast, update routes, mDNS) will fail or log errors on a machine without them; this is expected. Never run the update routes on a development machine, as they run `setup.sh`, `git pull`, and `docker pull` against `$HOME`.
+Anything that needs `systemctl`, `docker`, or Avahi (Snapcast, update routes, mDNS) will fail or log errors on a machine without them; this is expected. Never run the update routes on a development machine, as they install `.deb` packages with apt and run `git pull` and `docker compose` against `$HOME`.
 
 ### Environment Variables
 

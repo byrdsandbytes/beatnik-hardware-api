@@ -31,10 +31,7 @@ jobs:
           mkdir -p $ROOT/opt/beatnik-hardware-api $ROOT/etc/systemd/system $ROOT/DEBIAN
           cp -r dist node_modules package.json $ROOT/opt/beatnik-hardware-api/
 
-          # Point the service at the packaged install location
-          sed -e 's|^WorkingDirectory=.*|WorkingDirectory=/opt/beatnik-hardware-api|' \
-              -e 's|^ExecStart=.*|ExecStart=/usr/bin/node dist/server.js|' \
-              beatnik-hardware.service > $ROOT/etc/systemd/system/beatnik-hardware.service
+          cp beatnik-hardware.service $ROOT/etc/systemd/system/
 
           cat > $ROOT/DEBIAN/control <<EOF
           Package: beatnik-hardware-api

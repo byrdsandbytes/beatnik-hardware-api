@@ -46,15 +46,15 @@ Base URL: `http://localhost:3000`
 | POST | `/restart-client` | Restart Snapclient |
 
 ### Update (`/api/update`)
-Updates run in the background (`202 Accepted`); poll `/status`. Only one update runs at a time (`409` otherwise). Repositories are expected in `$BEATNIK_HOME` (default `/home/beatnik`).
+Updates run in the background (`202 Accepted`); poll `/status`. Only one update runs at a time (`409` otherwise). `bleno` and `api` require the Debian package to be installed (`404` otherwise); the controller and CamillaDSP repositories are expected in `$BEATNIK_HOME` (default `/home/beatnik`).
 
 | Method | Path | Description |
 |---|---|---|
 | GET | `/status` | `{ busy, targets[] }` – state and log tail of the last update per target |
-| POST | `/bleno` | Run `setup.sh` in `~/beatnik-bleno` |
+| POST | `/bleno` | Install the latest `beatnik-bleno` `.deb` release with apt (skipped if already up to date) |
 | POST | `/controller` | `docker compose pull` + `docker compose up -d` in `~/beatnik-controller` (recreates the container if the image changed). Without a `docker-compose.yml` it only runs `docker pull` on the image of the `beatnik-controller` container |
 | POST | `/camilladsp` | `git pull --ff-only origin master` in `~/camilladsp` |
-| POST | `/api` | Run `setup.sh` of this API in a transient systemd unit (the service restarts) |
+| POST | `/api` | Install the latest `beatnik-hardware-api` `.deb` release with apt in a transient systemd unit (the service restarts) |
 | POST | `/all` | All of the above in order, API last |
 
 Optional env vars: `BEATNIK_USER`, `BEATNIK_HOME`, `CONTROLLER_CONTAINER`, `CONTROLLER_IMAGE`. See `examples/update.service.ts` for an Angular client.

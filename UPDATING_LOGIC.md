@@ -13,7 +13,7 @@ All the relevant files are located in the user directory.
 - Beatnik Bleno -> trigger setup.sh
 - Beatnik Controller Docker -> docker pull
 - CamillaDSP repo -> git pull latest master
-- Beatnik Hardware API itself -> trigger setup.sh
+- Beatnik Hardware API itself -> trigger debian updta
 
 ##
 Create a new service and routes. Also create an example for usage like the snapcast.service.ts
