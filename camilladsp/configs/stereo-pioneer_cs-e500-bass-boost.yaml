@@ -1,0 +1,74 @@
+devices:
+  samplerate: 48000
+  chunksize: 1024
+  enable_rate_adjust: true
+  target_level: 1024
+  capture:
+    type: Alsa
+    channels: 2
+    device: hw:Loopback,1,0
+    format: S32LE
+  playback:
+    type: Alsa
+    channels: 2
+    device: plughw:CARD=sndrpihifiberry,DEV=0
+    format: S32LE
+filters:
+  MasterVolume:
+    type: Gain
+    parameters:
+      gain: 0
+      mute: false
+  BassBoost:
+    type: Biquad
+    parameters:
+      type: Lowshelf
+      freq: 150
+      gain: 12
+      q: 0.7
+  Highpass:
+    type: Biquad
+    parameters:
+      type: Highpass
+      freq: 40
+      q: 0.7
+  TameBassBoom:
+    type: Biquad
+    parameters:
+      type: Peaking
+      freq: 120
+      q: 1.5
+      gain: -3
+  BoostMids:
+    type: Biquad
+    parameters:
+      type: Peaking
+      freq: 1500
+      q: 1
+      gain: 2.5
+  TameTrebleHarshness:
+    type: Biquad
+    parameters:
+      type: Peaking
+      freq: 5000
+      q: 2
+      gain: -2
+pipeline:
+  - type: Filter
+    channel: 0
+    names:
+      - MasterVolume
+      - Highpass
+      - TameBassBoom
+      - BassBoost
+      - BoostMids
+      - TameTrebleHarshness
+  - type: Filter
+    channel: 1
+    names:
+      - MasterVolume
+      - Highpass
+      - TameBassBoom
+      - BassBoost
+      - BoostMids
+      - TameTrebleHarshness

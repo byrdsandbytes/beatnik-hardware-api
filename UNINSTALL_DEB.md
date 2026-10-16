@@ -10,7 +10,7 @@ Related guides: [Install](INSTALL_DEB.md) · [Update](UPDATING_DEB.md)
 sudo apt-get remove beatnik-hardware-api
 ```
 
-The pre-removal script stops and disables the service, and the package files in `/opt/beatnik-hardware-api` are deleted. The service file in `/etc/systemd/system` is a configuration file, so `remove` keeps it.
+The pre-removal script stops and disables the service, and the package files in `/opt/beatnik-hardware-api` are deleted. The service file in `/etc/systemd/system` is a configuration file, so `remove` keeps it. The same applies to `camilladsp.service`.
 
 ## Purge (remove including configuration)
 
@@ -20,7 +20,7 @@ sudo systemctl daemon-reload
 sudo systemctl reset-failed
 ```
 
-`purge` also deletes `/etc/systemd/system/beatnik-hardware.service`. Any drop-in overrides in `/etc/systemd/system/beatnik-hardware.service.d/` are not managed by the package, so delete them if you no longer want them:
+`purge` also deletes `/etc/systemd/system/beatnik-hardware.service` and `camilladsp.service`. Your CamillaDSP configs in `/var/lib/beatnik-hardware-api/camilladsp` are kept; delete that folder to remove them. Any drop-in overrides in `/etc/systemd/system/beatnik-hardware.service.d/` are not managed by the package, so delete them if you no longer want them:
 
 ```bash
 sudo rm -rf /etc/systemd/system/beatnik-hardware.service.d

@@ -20,10 +20,10 @@ Base URL: `http://localhost:3000`
 | GET | `/status` | Current & detected HAT, active CamillaDSP config |
 | GET | `/hats` | List supported HATs |
 | POST | `/apply` | Apply a HAT: `{ "hatId": "hifiberry-amp" }` |
-| GET | `/camilla/configs` | List CamillaDSP config files |
+| GET | `/camilla/configs` | List CamillaDSP config files (bundled defaults in [camilladsp/](camilladsp), copied to `/var/lib/beatnik-hardware-api/camilladsp` on start) |
 | GET | `/camilla/configs/default` | Get the active CamillaDSP config |
 | PUT | `/camilla/configs/default` | Set the active config: `{ "fileName": "..." }` |
-| GET | `/camilla/preamp/configs` | List preamp CamillaDSP config files (`~/camilladsp/preamp`) |
+| GET | `/camilla/preamp/configs` | List preamp CamillaDSP config files (`/var/lib/beatnik-hardware-api/camilladsp/preamp`) |
 | GET | `/camilla/preamp/configs/default` | Get the active preamp config |
 | PUT | `/camilla/preamp/configs/default` | Set the active preamp config and restart the preamp service: `{ "fileName": "vinyl.yml" }` |
 | POST | `/reboot` | Reboot the Pi |

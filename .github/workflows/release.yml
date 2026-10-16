@@ -29,9 +29,9 @@ jobs:
           VERSION=$(node -p "require('./package.json').version")
           ROOT=package_root
           mkdir -p $ROOT/opt/beatnik-hardware-api $ROOT/etc/systemd/system $ROOT/DEBIAN
-          cp -r dist node_modules package.json $ROOT/opt/beatnik-hardware-api/
+          cp -r dist camilladsp node_modules package.json $ROOT/opt/beatnik-hardware-api/
 
-          cp beatnik-hardware.service $ROOT/etc/systemd/system/
+          cp beatnik-hardware.service camilladsp.service $ROOT/etc/systemd/system/
 
           cat > $ROOT/DEBIAN/control <<EOF
           Package: beatnik-hardware-api
@@ -50,12 +50,17 @@ jobs:
           systemctl daemon-reload
           systemctl enable beatnik-hardware.service
           systemctl restart beatnik-hardware.service
+          # CamillaDSP binary is not part of this package; do not fail the install without it
+          systemctl enable camilladsp.service || true
+          systemctl restart camilladsp.service || true
           EOF
 
           cat > $ROOT/DEBIAN/prerm <<'EOF'
           #!/bin/sh
           systemctl stop beatnik-hardware.service || true
           systemctl disable beatnik-hardware.service || true
+          systemctl stop camilladsp.service || true
+          systemctl disable camilladsp.service || true
           EOF
           chmod 755 $ROOT/DEBIAN/postinst $ROOT/DEBIAN/prerm
 

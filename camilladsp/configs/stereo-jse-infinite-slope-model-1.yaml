@@ -1,0 +1,99 @@
+devices:
+  samplerate: 48000
+  chunksize: 1024
+  enable_rate_adjust: true
+  target_level: 1024
+  capture:
+    type: Alsa
+    channels: 2
+    device: plughw:Loopback,1,0
+    format: S16LE
+  playback:
+    type: Alsa
+    channels: 2
+    device: plughw:CARD=sndrpihifiberry,DEV=0
+    format: S32LE
+
+# JSE Infinite Slope Model 1 - Native Biquad EQ Profile:
+# This uses CamillaDSP's built-in standard filters for simplicity. No external .wav files needed.
+# - 4.0 kHz Bell cut: -2.0 dB, Q 1.5 (Tame early tweeter glare)
+# - 12.0 kHz High-Shelf: +1.5 dB (Restore top-end "air" for vintage tweeter)
+# - 90 Hz Bell cut: -2.0 dB, Q 1.5 (Control typical cabinet/room mid-bass boom)
+# - 35 Hz Low-Shelf: +2.0 dB (Extend deep-bass response)
+
+filters:
+  preamp:
+    type: Gain
+    parameters:
+      gain: -4.0
+      inverted: false
+      mute: false
+
+  bass_extend:
+    type: Biquad
+    parameters:
+      type: Lowshelf
+      freq: 35
+      slope: 6
+      gain: 2.0
+
+  midbass_cut:
+    type: Biquad
+    parameters:
+      type: Peaking
+      freq: 90
+      q: 1.5
+      gain: -2.0
+
+  tweeter_glare:
+    type: Biquad
+    parameters:
+      type: Peaking
+      freq: 4000
+      q: 1.5
+      gain: -2.0
+
+  air_boost:
+    type: Biquad
+    parameters:
+      type: Highshelf
+      freq: 12000
+      slope: 6
+      gain: 1.5
+
+mixers:
+  stereo:
+    channels:
+      in: 2
+      out: 2
+    mapping:
+      - dest: 0
+        sources:
+          - channel: 0
+            gain: 0
+            inverted: false
+      - dest: 1
+        sources:
+          - channel: 1
+            gain: 0
+            inverted: false
+
+pipeline:
+  - type: Mixer
+    name: stereo
+  - type: Filter
+    channel: 0
+    names:
+      - preamp
+      - bass_extend
+      - midbass_cut
+      - tweeter_glare
+      - air_boost
+  - type: Filter
+    channel: 1
+    names:
+      - preamp
+      - bass_extend
+      - midbass_cut
+      - tweeter_glare
+      - air_boost

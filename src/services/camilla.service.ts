@@ -1,19 +1,63 @@
 import fs from 'fs/promises';
+import { constants as fsConstants } from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { SUPPORTED_HATS } from '../types/hats';
 
-const CAMILLA_CONFIG_DIR = process.env.CAMILLA_CONFIG_DIR || '/home/beatnik/camilladsp/configs';
+// Configs shipped with this project (<install dir>/camilladsp); copied into CAMILLA_HOME on start
+const BUNDLED_CAMILLA_DIR = path.resolve(__dirname, '../../camilladsp');
+// Writable runtime location of the CamillaDSP configs
+const CAMILLA_HOME = process.env.CAMILLA_HOME || '/var/lib/beatnik-hardware-api/camilladsp';
+
+const CAMILLA_CONFIG_DIR = process.env.CAMILLA_CONFIG_DIR || path.join(CAMILLA_HOME, 'configs');
 const CAMILLA_CONFIG_PATH = process.env.CAMILLA_CONFIG_PATH || path.join(CAMILLA_CONFIG_DIR, 'client_config.yml');
 const CAMILLA_SERVICE_NAME = process.env.CAMILLA_SERVICE_NAME || 'camilladsp';
 
 // Second CamillaDSP instance used as preamp (e.g. vinyl line-in) in front of Snapcast
-const PREAMP_CONFIG_DIR = process.env.CAMILLA_PREAMP_CONFIG_DIR || '/home/beatnik/camilladsp/preamp';
+const PREAMP_CONFIG_DIR = process.env.CAMILLA_PREAMP_CONFIG_DIR || path.join(CAMILLA_HOME, 'preamp');
 const PREAMP_CONFIG_PATH = process.env.CAMILLA_PREAMP_CONFIG_PATH || path.join(PREAMP_CONFIG_DIR, 'client_config.yml');
 const PREAMP_SERVICE_NAME = process.env.CAMILLA_PREAMP_SERVICE_NAME || 'camilladsp-preamp';
 const execAsync = promisify(exec);
+
+async function copyMissing(sourceDir: string, targetDir: string): Promise<void> {
+    await fs.mkdir(targetDir, { recursive: true });
+    const entries = await fs.readdir(sourceDir, { withFileTypes: true });
+
+    for (const entry of entries) {
+        const source = path.join(sourceDir, entry.name);
+        const target = path.join(targetDir, entry.name);
+
+        if (entry.isDirectory()) {
+            await copyMissing(source, target);
+            continue;
+        }
+
+        try {
+            // COPYFILE_EXCL keeps user-modified configs and symlinks untouched
+            await fs.copyFile(source, target, fsConstants.COPYFILE_EXCL);
+        } catch (error: any) {
+            if (error.code !== 'EEXIST') throw error;
+        }
+    }
+}
+
+/**
+ * Seeds the runtime config directories with the bundled configs.
+ * Existing files are never overwritten, so user changes survive updates.
+ */
+export async function seedCamillaConfigs(): Promise<void> {
+    const targets: Array<[string, string]> = [
+        ['configs', CAMILLA_CONFIG_DIR],
+        ['preamp', PREAMP_CONFIG_DIR],
+        ['coeffs', path.join(CAMILLA_HOME, 'coeffs')],
+    ];
+
+    for (const [name, target] of targets) {
+        await copyMissing(path.join(BUNDLED_CAMILLA_DIR, name), target);
+    }
+}
 
 export interface CamillaInstanceOptions {
     configDir: string;

@@ -1,0 +1,18 @@
+devices:
+  samplerate: 44100
+  chunksize: 1024
+  capture:
+    type: Alsa
+    channels: 2
+    device: "hw:1,0"  # Replace with your ADC device
+    format: S16LE
+  playback:
+    type: File
+    channels: 2
+    filename: "/tmp/snapcast/snap-line-in" # The pipe sent to Snapserver
+    format: S16LE
+
+# Intentionally empty: audio passes through unchanged
+filters: {}
+
+pipeline: []

@@ -51,7 +51,7 @@ curl http://localhost:3000/api/system/info
 
 ### Run Locally Without a Pi
 
-By default the API reads and writes system files such as `/boot/firmware/config.txt` and `/home/beatnik/camilladsp/configs`. To develop on any machine, point it at local files:
+By default the API reads and writes system files such as `/boot/firmware/config.txt` and `/var/lib/beatnik-hardware-api/camilladsp`. To develop on any machine, point it at local files:
 
 ```bash
 touch test-config.txt
@@ -60,6 +60,7 @@ touch test-camilla-configs/profile-a.yml
 ln -sf ./test-camilla-configs/profile-a.yml test-camilla.yml
 
 CONFIG_PATH=./test-config.txt \
+CAMILLA_HOME=./test-camilla \
 CAMILLA_CONFIG_DIR=./test-camilla-configs \
 CAMILLA_CONFIG_PATH=./test-camilla.yml \
 npm run dev
@@ -72,10 +73,11 @@ Anything that needs `systemctl`, `docker`, or Avahi (Snapcast, update routes, mD
 | Variable | Default | Purpose |
 |---|---|---|
 | `CONFIG_PATH` | `/boot/firmware/config.txt` | Raspberry Pi boot config |
-| `CAMILLA_CONFIG_DIR` | `/home/beatnik/camilladsp/configs` | CamillaDSP config directory |
+| `CAMILLA_HOME` | `/var/lib/beatnik-hardware-api/camilladsp` | Writable CamillaDSP directory (`configs`, `preamp`, `coeffs`). On start, missing files are copied from the bundled `camilladsp/` folder; existing files are never overwritten |
+| `CAMILLA_CONFIG_DIR` | `<CAMILLA_HOME>/configs` | CamillaDSP config directory |
 | `CAMILLA_CONFIG_PATH` | `<CAMILLA_CONFIG_DIR>/client_config.yml` | Active CamillaDSP config (symlink) |
 | `CAMILLA_SERVICE_NAME` | `camilladsp` | systemd service restarted after config changes |
-| `CAMILLA_PREAMP_CONFIG_DIR` | `/home/beatnik/camilladsp/preamp` | Preamp CamillaDSP config directory |
+| `CAMILLA_PREAMP_CONFIG_DIR` | `<CAMILLA_HOME>/preamp` | Preamp CamillaDSP config directory |
 | `CAMILLA_PREAMP_CONFIG_PATH` | `<CAMILLA_PREAMP_CONFIG_DIR>/client_config.yml` | Active preamp config (symlink) |
 | `CAMILLA_PREAMP_SERVICE_NAME` | `camilladsp-preamp` | systemd service restarted after preamp config changes |
 | `AVAHI_SERVICE_DIR` | `/etc/avahi/services` | Where the mDNS service file is written |
