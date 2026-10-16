@@ -8,14 +8,49 @@ import { SUPPORTED_HATS } from '../types/hats';
 const CAMILLA_CONFIG_DIR = process.env.CAMILLA_CONFIG_DIR || '/home/beatnik/camilladsp/configs';
 const CAMILLA_CONFIG_PATH = process.env.CAMILLA_CONFIG_PATH || path.join(CAMILLA_CONFIG_DIR, 'client_config.yml');
 const CAMILLA_SERVICE_NAME = process.env.CAMILLA_SERVICE_NAME || 'camilladsp';
+
+// Second CamillaDSP instance used as preamp (e.g. vinyl line-in) in front of Snapcast
+const PREAMP_CONFIG_DIR = process.env.CAMILLA_PREAMP_CONFIG_DIR || '/home/beatnik/camilladsp/preamp';
+const PREAMP_CONFIG_PATH = process.env.CAMILLA_PREAMP_CONFIG_PATH || path.join(PREAMP_CONFIG_DIR, 'client_config.yml');
+const PREAMP_SERVICE_NAME = process.env.CAMILLA_PREAMP_SERVICE_NAME || 'camilladsp-preamp';
 const execAsync = promisify(exec);
 
+export interface CamillaInstanceOptions {
+    configDir: string;
+    configPath: string;
+    serviceName: string;
+}
+
+export const MAIN_CAMILLA_OPTIONS: CamillaInstanceOptions = {
+    configDir: CAMILLA_CONFIG_DIR,
+    configPath: CAMILLA_CONFIG_PATH,
+    serviceName: CAMILLA_SERVICE_NAME,
+};
+
+export const PREAMP_CAMILLA_OPTIONS: CamillaInstanceOptions = {
+    configDir: PREAMP_CONFIG_DIR,
+    configPath: PREAMP_CONFIG_PATH,
+    serviceName: PREAMP_SERVICE_NAME,
+};
+
 export class CamillaService {
+    private readonly configDir: string;
+    private readonly configPath: string;
+    private readonly serviceName: string;
+    private readonly activeConfigFileName: string;
+
+    constructor(options: CamillaInstanceOptions = MAIN_CAMILLA_OPTIONS) {
+        this.configDir = options.configDir;
+        this.configPath = options.configPath;
+        this.serviceName = options.serviceName;
+        this.activeConfigFileName = path.basename(options.configPath);
+    }
+
     async restartService(): Promise<void> {
         try {
-            await execAsync(`sudo systemctl restart ${CAMILLA_SERVICE_NAME}`);
+            await execAsync(`sudo systemctl restart ${this.serviceName}`);
         } catch (error) {
-            console.error('Failed to restart CamillaDSP service:', error);
+            console.error(`Failed to restart ${this.serviceName} service:`, error);
             throw new Error('Failed to restart CamillaDSP service');
         }
     }
@@ -36,15 +71,15 @@ export class CamillaService {
             throw new Error('Only .yml or .yaml files are allowed');
         }
 
-        if (normalizedFileName === 'client_config.yml') {
-            throw new Error('client_config.yml cannot be selected as source config');
+        if (normalizedFileName === this.activeConfigFileName) {
+            throw new Error(`${this.activeConfigFileName} cannot be selected as source config`);
         }
 
         return normalizedFileName;
     }
 
     async listAvailableConfigs(): Promise<string[]> {
-        const entries = await fs.readdir(CAMILLA_CONFIG_DIR, { withFileTypes: true });
+        const entries = await fs.readdir(this.configDir, { withFileTypes: true });
 
         return entries
             .filter((entry) => entry.isFile() || entry.isSymbolicLink())
@@ -53,25 +88,25 @@ export class CamillaService {
                 const extension = path.extname(fileName).toLowerCase();
                 return extension === '.yml' || extension === '.yaml';
             })
-            .filter((fileName) => fileName !== 'client_config.yml')
+            .filter((fileName) => fileName !== this.activeConfigFileName)
             .sort((left, right) => left.localeCompare(right));
     }
 
     async getDefaultConfig(): Promise<string> {
-        const currentConfigStat = await fs.lstat(CAMILLA_CONFIG_PATH);
+        const currentConfigStat = await fs.lstat(this.configPath);
 
         if (currentConfigStat.isSymbolicLink()) {
-            const linkTarget = await fs.readlink(CAMILLA_CONFIG_PATH);
+            const linkTarget = await fs.readlink(this.configPath);
             return path.basename(linkTarget);
         }
 
-        return path.basename(CAMILLA_CONFIG_PATH);
+        return path.basename(this.configPath);
     }
 
     async setDefaultConfig(fileName: string, hatId?: string): Promise<void> {
         const safeFileName = this.validateConfigFileName(fileName);
-        const targetPath = path.resolve(CAMILLA_CONFIG_DIR, safeFileName);
-        const configDirPath = path.resolve(CAMILLA_CONFIG_DIR) + path.sep;
+        const targetPath = path.resolve(this.configDir, safeFileName);
+        const configDirPath = path.resolve(this.configDir) + path.sep;
 
         if (!targetPath.startsWith(configDirPath)) {
             throw new Error('Selected config path is outside of config directory');
@@ -82,7 +117,7 @@ export class CamillaService {
             throw new Error('Selected config is not a file');
         }
 
-        const temporaryLinkPath = `${CAMILLA_CONFIG_PATH}.tmp`;
+        const temporaryLinkPath = `${this.configPath}.tmp`;
 
         try {
             await fs.unlink(temporaryLinkPath);
@@ -91,7 +126,7 @@ export class CamillaService {
         }
 
         await fs.symlink(targetPath, temporaryLinkPath);
-        await fs.rename(temporaryLinkPath, CAMILLA_CONFIG_PATH);
+        await fs.rename(temporaryLinkPath, this.configPath);
 
         if (hatId) {
             await this.updateConfig(hatId);
@@ -107,7 +142,7 @@ export class CamillaService {
         if (!targetHat) throw new Error('Invalid HAT ID');
 
         try {
-            const fileContent = await fs.readFile(CAMILLA_CONFIG_PATH, 'utf-8');
+            const fileContent = await fs.readFile(this.configPath, 'utf-8');
             const config = yaml.load(fileContent) as any;
 
             // Ensure devices structure exists
@@ -127,7 +162,7 @@ export class CamillaService {
 
             // YAML schreiben (mit breitem Limit um Umbrüche zu vermeiden)
             const newYaml = yaml.dump(config, { lineWidth: -1 });
-            await fs.writeFile(CAMILLA_CONFIG_PATH, newYaml, 'utf-8');
+            await fs.writeFile(this.configPath, newYaml, 'utf-8');
 
             console.log(`CamillaDSP updated for HAT: ${hatId} -> Device: ${targetHat.camilla.device}`);
 

@@ -18,12 +18,55 @@ jobs:
         with:
           node-version: '22'
           
-      - name: Install dependencies and pack
+      - name: Install dependencies and build
         run: |
           npm ci
           npm run pack-pi
-          
-      - name: Upload Release Asset
+          npm ci --omit=dev
+
+      - name: Build Debian package
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          ROOT=package_root
+          mkdir -p $ROOT/opt/beatnik-hardware-api $ROOT/etc/systemd/system $ROOT/DEBIAN
+          cp -r dist node_modules package.json $ROOT/opt/beatnik-hardware-api/
+
+          # Point the service at the packaged install location
+          sed -e 's|^WorkingDirectory=.*|WorkingDirectory=/opt/beatnik-hardware-api|' \
+              -e 's|^ExecStart=.*|ExecStart=/usr/bin/node dist/server.js|' \
+              beatnik-hardware.service > $ROOT/etc/systemd/system/beatnik-hardware.service
+
+          cat > $ROOT/DEBIAN/control <<EOF
+          Package: beatnik-hardware-api
+          Version: ${VERSION}
+          Section: base
+          Priority: optional
+          Architecture: all
+          Depends: nodejs (>= 22.0.0)
+          Maintainer: Beatnik <maintainer@example.com>
+          Description: Microservice to configure Raspberry Pi Hardware & CamillaDSP
+          EOF
+
+          cat > $ROOT/DEBIAN/postinst <<'EOF'
+          #!/bin/sh
+          set -e
+          systemctl daemon-reload
+          systemctl enable beatnik-hardware.service
+          systemctl restart beatnik-hardware.service
+          EOF
+
+          cat > $ROOT/DEBIAN/prerm <<'EOF'
+          #!/bin/sh
+          systemctl stop beatnik-hardware.service || true
+          systemctl disable beatnik-hardware.service || true
+          EOF
+          chmod 755 $ROOT/DEBIAN/postinst $ROOT/DEBIAN/prerm
+
+          dpkg-deb --root-owner-group --build $ROOT beatnik-hardware-api_${VERSION}_all.deb
+
+      - name: Upload Release Assets
         uses: softprops/action-gh-release@v1
         with:
-          files: beatnik-hardware-api.tar.gz
+          files: |
+            beatnik-hardware-api.tar.gz
+            beatnik-hardware-api_*_all.deb
