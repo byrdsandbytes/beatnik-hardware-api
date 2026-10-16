@@ -8,7 +8,7 @@ Microservice for managing audio hardware, Snapcast, and system settings on a Ras
 
 ## Installation
 
-See the [Installation & Updating Guide](INSTALL.md) for setup, updates, and systemd configuration. To remove the service, see the [Uninstall Guide](UNINSTALL.md). Developers: see [Build from Source](BUILD_FROM_SOURCE.md).
+See the [Installation & Updating Guide](INSTALL.md) for setup, updates, and systemd configuration. To remove the service, see the [Uninstall Guide](UNINSTALL.md). Prefer `apt`? See the Debian package guides: [Install](INSTALL_DEB.md), [Update](UPDATING_DEB.md), [Uninstall](UNINSTALL_DEB.md). Developers: see [Build from Source](BUILD_FROM_SOURCE.md).
 
 ## API
 

@@ -148,7 +148,7 @@ Then set up the systemd service as in step 6.
 
 ### Publishing a Release
 
-Releases are built by GitHub Actions (`.github/workflows/release.yml`) whenever a tag starting with `v` is pushed. The workflow runs `npm ci` and `npm run pack-pi`, then attaches `beatnik-hardware-api.tar.gz` to the GitHub release.
+Releases are built by GitHub Actions (`.github/workflows/release.yml`) whenever a tag starting with `v` is pushed. The workflow runs `npm ci` and `npm run pack-pi`, then attaches `beatnik-hardware-api.tar.gz` to the GitHub release. It also builds `beatnik-hardware-api_<version>_all.deb` (app and production `node_modules` in `/opt/beatnik-hardware-api`, systemd unit in `/etc/systemd/system`, service enabled and started by `postinst`). Install it with `sudo apt-get install ./beatnik-hardware-api_<version>_all.deb`; it requires `nodejs >= 22` at `/usr/bin/node`.
 
 ```bash
 # 1. Bump the version in package.json (also shown via mDNS)
