@@ -50,6 +50,7 @@ Updates run in the background (`202 Accepted`); poll `/status`. Only one update 
 
 | Method | Path | Description |
 |---|---|---|
+| GET | `/versions` | `{ versions[] }` – installed version of `api`, `bleno` (Debian packages) and `controller` (Docker image tag or `org.opencontainers.image.version` label, plus `image` and `imageId`); `installed: false` / `version: null` if missing |
 | GET | `/status` | `{ busy, targets[] }` – state and log tail of the last update per target |
 | POST | `/bleno` | Install the latest `beatnik-bleno` `.deb` release with apt (skipped if already up to date) |
 | POST | `/controller` | `docker compose pull` + `docker compose up -d` in `~/beatnik-controller` (recreates the container if the image changed). Without a `docker-compose.yml` it only runs `docker pull` on the image of the `beatnik-controller` container |

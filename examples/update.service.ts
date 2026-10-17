@@ -25,6 +25,14 @@ export interface UpdateOffline {
   offline: true;
 }
 
+export interface VersionInfo {
+  target: UpdateTarget;
+  installed: boolean;
+  version: string | null;
+  image?: string; // Controller only
+  imageId?: string; // Controller only
+}
+
 export interface StartUpdateResponse {
   success: boolean;
   message: string;
@@ -47,6 +55,13 @@ export class UpdateService {
    */
   getStatus(): Observable<UpdateOverview> {
     return this.http.get<UpdateOverview>(`${this.apiUrl}/status`);
+  }
+
+  /**
+   * Get the installed versions of api, bleno and controller
+   */
+  getVersions(): Observable<{ versions: VersionInfo[] }> {
+    return this.http.get<{ versions: VersionInfo[] }>(`${this.apiUrl}/versions`);
   }
 
   /**
