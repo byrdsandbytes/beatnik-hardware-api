@@ -7,6 +7,15 @@ const execFileAsync = promisify(execFile);
 
 export type UpdateTarget = 'bleno' | 'controller' | 'api';
 export type UpdateRequest = UpdateTarget | 'all';
+export interface VersionInfo {
+  target: UpdateTarget;
+  installed: boolean;
+  version: string | null;
+  // Controller only: Docker image reference and ID of the running container
+  image?: string;
+  imageId?: string;
+}
+
 export type UpdateState = 'idle' | 'running' | 'success' | 'failed';
 
 export interface UpdateStatus {
@@ -238,6 +247,50 @@ export class UpdateService {
     throw new Error(
       `Could not determine controller image from container "${CONTROLLER_CONTAINER}". Set CONTROLLER_IMAGE.`
     );
+  }
+
+  /** Installed versions of the API, bleno (Debian packages) and the controller (Docker image). */
+  async getVersions(): Promise<VersionInfo[]> {
+    return Promise.all(UPDATE_TARGETS.map((target) => this.getVersion(target)));
+  }
+
+  private async getVersion(target: UpdateTarget): Promise<VersionInfo> {
+    const deb = DEB_TARGETS[target];
+    if (deb) {
+      let version = await this.getInstalledVersion(deb.packageName);
+      if (!version && target === 'api') {
+        // Not installed as a package (e.g. source install): use package.json
+        version = await this.getPackageJsonVersion();
+      }
+      return { target, installed: version !== null, version };
+    }
+    return this.getControllerVersion();
+  }
+
+  private async getPackageJsonVersion(): Promise<string | null> {
+    try {
+      const file = path.resolve(__dirname, '../../package.json');
+      return JSON.parse(await fs.readFile(file, 'utf-8')).version ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  private async getControllerVersion(): Promise<VersionInfo> {
+    try {
+      const { stdout } = await this.docker([
+        'inspect',
+        '--format',
+        '{{.Config.Image}}|{{.Image}}|{{index .Config.Labels "org.opencontainers.image.version"}}',
+        CONTROLLER_CONTAINER,
+      ]);
+      const [image, imageId, label] = stdout.trim().split('|');
+      const tag = image.includes(':') ? image.split(':').pop()! : 'latest';
+      const labelVersion = label && label !== '<no value>' ? label : null;
+      return { target: 'controller', installed: true, version: labelVersion ?? tag, image, imageId };
+    } catch {
+      return { target: 'controller', installed: false, version: null };
+    }
   }
 
   private async getInstalledVersion(packageName: string): Promise<string | null> {
