@@ -1,11 +1,15 @@
 devices:
   samplerate: 44100
-  chunksize: 1024
+  chunksize: 4096  # Larger chunks avoid underruns; latency is irrelevant for line-in
+  # The HiFiBerry ADC only captures at 48000 Hz; resample to the 44100 Hz pipeline rate
+  capture_samplerate: 48000
+  resampler:
+    type: Synchronous  # 48000 -> 44100 is an exact 160:147 ratio; much cheaper than async
   capture:
     type: Alsa
     channels: 2
     device: "hw:1,0"  # Replace with your ADC device
-    format: S16LE
+    format: S32LE
   playback:
     type: File
     channels: 2
