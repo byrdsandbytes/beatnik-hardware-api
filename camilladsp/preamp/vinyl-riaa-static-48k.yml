@@ -16,7 +16,7 @@ filters:
   preamp:
     type: Gain
     parameters:
-      # Same overall level at 1 kHz as vinyl.yml (~47.5 dB incl. the RIAA biquad's +13.3 dB at 1 kHz)
+      # Overall gain of ~47.5 dB at 1 kHz (incl. the RIAA biquad's +13.3 dB at 1 kHz)
       gain: 34.2
       inverted: false
       mute: false

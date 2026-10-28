@@ -90,7 +90,7 @@ export async function audioRoutes(fastify: FastifyInstance) {
   });
 
   // PUT /api/hardware/camilla/preamp/configs/default
-  // Body: { fileName: 'vinyl.yml' }
+  // Body: { fileName: 'vinyl-riaa-static-48k.yml' }
   fastify.put<{ Body: { fileName: string } }>('/camilla/preamp/configs/default', async (request, reply) => {
     const { fileName } = request.body || {};
 

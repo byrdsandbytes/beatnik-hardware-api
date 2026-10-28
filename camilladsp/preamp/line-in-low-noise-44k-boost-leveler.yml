@@ -1,0 +1,54 @@
+devices:
+  samplerate: 44100
+  chunksize: 4096
+  # The HiFiBerry ADC only captures at 48000 Hz; resample to 44100 Hz
+  capture_samplerate: 48000
+  resampler:
+    type: Synchronous  # 48000 -> 44100 is an exact 160:147 ratio
+  capture:
+    type: Alsa
+    channels: 2
+    device: "hw:1,0"  # HiFiBerry DAC+ADC Pro, only supports S32_LE (24 bit in 32 bit)
+    format: S32LE
+  playback:
+    type: File
+    channels: 2
+    filename: "/tmp/snapcast/snap-line-in" # Snapserver source must use sampleformat 44100:16:2
+    format: S16LE
+
+# Low-noise variant: set the ADC hardware gain to +32 dB first (see amixer -c 1 contents),
+# so only a moderate digital boost is needed on top.
+filters:
+  boost_gain_l:
+    type: Gain
+    parameters:
+      gain: 33.0 # 30-36 dB range; lower it if the output clips
+      inverted: false
+      mute: false
+  boost_gain_r:
+    type: Gain
+    parameters:
+      gain: 33.0
+      inverted: false
+      mute: false
+
+processors:
+  auto_leveler:
+    type: Compressor
+    parameters:
+      channels: 2
+      attack: 0.005    # seconds
+      release: 0.200   # seconds
+      threshold: -12.0
+      factor: 4.0
+      makeup_gain: 2.0
+
+pipeline:
+  - type: Filter
+    channel: 0
+    names: [boost_gain_l]
+  - type: Filter
+    channel: 1
+    names: [boost_gain_r]
+  - type: Processor
+    name: auto_leveler

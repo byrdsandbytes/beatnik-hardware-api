@@ -1,0 +1,19 @@
+devices:
+  samplerate: 48000  # Native rate of the HiFiBerry ADC, no resampling needed
+  chunksize: 4096
+  capture:
+    type: Alsa
+    channels: 2
+    device: "hw:1,0"  # HiFiBerry DAC+ADC Pro
+    format: S32LE
+  playback:
+    type: File
+    channels: 2
+    filename: "/tmp/snapcast/snap-line-in" # Snapserver source must use sampleformat 48000:16:2
+    format: S16LE
+
+# Bypass: no gain, RIAA or other processing. Use for line-level sources (CD, tuner, tape deck)
+# or phono preamps that already apply RIAA.
+filters: {}
+
+pipeline: []

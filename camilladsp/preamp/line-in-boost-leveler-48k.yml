@@ -1,0 +1,49 @@
+devices:
+  samplerate: 48000
+  chunksize: 1024
+  capture:
+    type: Alsa
+    channels: 2
+    device: "hw:1,0"  # HiFiBerry DAC+ADC Pro, only supports S32_LE
+    format: S32LE
+  playback:
+    type: File
+    channels: 2
+    filename: "/tmp/snapcast/snap-line-in" # Snapserver source must use sampleformat 48000:16:2
+    format: S16LE
+
+# Very quiet sources (e.g. direct phono/low-output input): large boost followed by a compressor
+filters:
+  boost_gain_l:
+    type: Gain
+    parameters:
+      gain: 68.0 # Boosts -78.2dB peak to ~-10dB
+      inverted: false
+      mute: false
+  boost_gain_r:
+    type: Gain
+    parameters:
+      gain: 68.0 # Boosts -78.2dB peak to ~-10dB
+      inverted: false
+      mute: false
+
+processors:
+  auto_leveler:
+    type: Compressor
+    parameters:
+      channels: 2      # Required: tells the compressor how many channels to process
+      attack: 0.005    # 5 milliseconds (values must be in seconds)
+      release: 0.200   # 200 milliseconds (values must be in seconds)
+      threshold: -12.0
+      factor: 4.0
+      makeup_gain: 2.0
+
+pipeline:
+  - type: Filter
+    channel: 0
+    names: [boost_gain_l]
+  - type: Filter
+    channel: 1
+    names: [boost_gain_r]
+  - type: Processor
+    name: auto_leveler

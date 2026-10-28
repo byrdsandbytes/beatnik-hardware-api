@@ -16,7 +16,7 @@ filters:
   preamp:
     type: Gain
     parameters:
-      # Same overall level at 1 kHz as vinyl.yml (~47.5 dB incl. the FIR's +10.8 dB at 1 kHz)
+      # Overall gain of ~47.5 dB at 1 kHz (incl. the FIR's +10.8 dB at 1 kHz)
       gain: 36.7
       inverted: false
       mute: false
