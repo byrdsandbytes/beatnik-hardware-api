@@ -1,6 +1,8 @@
 [Unit]
 Description=CamillaDSP preamp (line-in to Snapcast)
 After=beatnik-hardware.service
+# Keep retrying (e.g. while the capture device is missing) instead of hitting the start limit
+StartLimitIntervalSec=0
 Wants=beatnik-hardware.service
 
 [Service]
