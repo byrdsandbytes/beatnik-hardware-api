@@ -13,7 +13,7 @@ devices:
   playback:
     type: File
     channels: 2
-    filename: "/tmp/snapcast/snap-line-in" # Snapserver source must use sampleformat 44100:16:2
+    filename: "/tmp/snap-line-in" # Snapserver source must use sampleformat 44100:16:2
     format: S16LE
 
 # Low-noise variant: set the ADC hardware gain to +32 dB first (see amixer -c 1 contents),

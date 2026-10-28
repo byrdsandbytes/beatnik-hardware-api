@@ -9,7 +9,7 @@ devices:
   playback:
     type: File
     channels: 2
-    filename: "/tmp/snapcast/snap-line-in" # Snapserver source must use sampleformat 48000:16:2
+    filename: "/tmp/snap-line-in" # Snapserver source must use sampleformat 48000:16:2
     format: S16LE
 
 filters:
