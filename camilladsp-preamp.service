@@ -1,0 +1,16 @@
+[Unit]
+Description=CamillaDSP preamp (line-in to Snapcast)
+After=beatnik-hardware.service
+Wants=beatnik-hardware.service
+
+[Service]
+Type=simple
+# Runs as root like the hardware API, which owns and edits the configs
+User=root
+# Websocket on port 1235 (main CamillaDSP uses 1234)
+ExecStart=/usr/local/bin/camilladsp --address 0.0.0.0 --port 1235 /var/lib/beatnik-hardware-api/camilladsp/preamp/client_config.yml
+Restart=always
+RestartSec=1
+
+[Install]
+WantedBy=multi-user.target
