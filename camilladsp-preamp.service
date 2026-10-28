@@ -1,14 +1,16 @@
 [Unit]
 Description=CamillaDSP preamp (line-in to Snapcast)
-After=beatnik-hardware.service
+After=beatnik-hardware.service snapserver.service
 # Keep retrying (e.g. while the capture device is missing) instead of hitting the start limit
 StartLimitIntervalSec=0
 Wants=beatnik-hardware.service
 
 [Service]
 Type=simple
-# Runs as root like the hardware API, which owns and edits the configs
-User=root
+# Must own the Snapserver pipe in /tmp: fs.protected_fifos blocks other users (even root) from opening it.
+# Configs in /var/lib are world-readable; ALSA capture needs the audio group.
+User=snapserver
+SupplementaryGroups=audio
 # Websocket on port 1235 (main CamillaDSP uses 1234)
 ExecStart=/usr/local/bin/camilladsp --address 0.0.0.0 --port 1235 /var/lib/beatnik-hardware-api/camilladsp/preamp/client_config.yml
 Restart=always

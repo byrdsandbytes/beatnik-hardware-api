@@ -1,6 +1,6 @@
 devices:
   samplerate: 48000  # Native rate of the HiFiBerry ADC, no resampling needed
-  chunksize: 4096
+  chunksize: 1024
   capture:
     type: Alsa
     channels: 2

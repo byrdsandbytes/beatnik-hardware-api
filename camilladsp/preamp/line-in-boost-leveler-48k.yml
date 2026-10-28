@@ -4,7 +4,7 @@ devices:
   capture:
     type: Alsa
     channels: 2
-    device: "hw:1,0"  # HiFiBerry DAC+ADC Pro, only supports S32_LE
+    device: "hw:1,0" # HiFiBerry DAC+ADC Pro, only supports S32_LE
     format: S32LE
   playback:
     type: File
@@ -17,13 +17,13 @@ filters:
   boost_gain_l:
     type: Gain
     parameters:
-      gain: 68.0 # Boosts -78.2dB peak to ~-10dB
+      gain: 20.0 # Boosts -78.2dB peak to ~-10dB
       inverted: false
       mute: false
   boost_gain_r:
     type: Gain
     parameters:
-      gain: 68.0 # Boosts -78.2dB peak to ~-10dB
+      gain: 20.0 # Boosts -78.2dB peak to ~-10dB
       inverted: false
       mute: false
 
@@ -31,12 +31,17 @@ processors:
   auto_leveler:
     type: Compressor
     parameters:
-      channels: 2      # Required: tells the compressor how many channels to process
-      attack: 0.005    # 5 milliseconds (values must be in seconds)
-      release: 0.200   # 200 milliseconds (values must be in seconds)
-      threshold: -12.0
-      factor: 4.0
-      makeup_gain: 2.0
+      channels: 2 # Required: tells the compressor how many channels to process
+      attack: 0.030 # 30 milliseconds (values must be in seconds)
+      release: 0.100 # 100 milliseconds (values must be in seconds)
+      threshold: -15.0
+      factor: 2.0
+      makeup_gain: 0.0
+  example_limiter:
+    type: Limiter
+    parameters:
+    soft_clip: true (*)
+    clip_limit: -1.0
 
 pipeline:
   - type: Filter
@@ -47,3 +52,5 @@ pipeline:
     names: [boost_gain_r]
   - type: Processor
     name: auto_leveler
+  - type: Processor
+    name: example_limiter
