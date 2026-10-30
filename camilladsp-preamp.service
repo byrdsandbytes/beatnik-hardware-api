@@ -11,6 +11,9 @@ Type=simple
 # Configs in /var/lib are world-readable; ALSA capture needs the audio group.
 User=snapserver
 SupplementaryGroups=audio
+# CamillaDSP would create a regular file if the pipe is missing, which Snapserver then replays
+ExecStartPre=/bin/sh -c 'until [ -p /tmp/snap-line-in ]; do sleep 1; done'
+TimeoutStartSec=infinity
 # Websocket on port 1235 (main CamillaDSP uses 1234)
 ExecStart=/usr/local/bin/camilladsp --address 0.0.0.0 --port 1235 /var/lib/beatnik-hardware-api/camilladsp/preamp/client_config.yml
 Restart=always
