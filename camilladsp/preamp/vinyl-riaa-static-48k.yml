@@ -1,0 +1,56 @@
+devices:
+  samplerate: 48000  # Native rate of the HiFiBerry ADC, no resampling needed
+  chunksize: 1024
+  capture:
+    type: Alsa
+    channels: 2
+    device: "hw:1,0"  # HiFiBerry DAC+ADC Pro
+    format: S32LE
+  playback:
+    type: File
+    channels: 2
+    filename: "/tmp/snap-line-in" # Snapserver source must use sampleformat 48000:16:2
+    format: S16LE
+
+filters:
+  preamp:
+    type: Gain
+    parameters:
+      # Overall gain of ~47.5 dB at 1 kHz (incl. the RIAA biquad's +13.3 dB at 1 kHz)
+      gain: 34.2
+      inverted: false
+      mute: false
+
+  # Static RIAA reproduction curve (3180/318/75 us) as one biquad for 48 kHz.
+  # Poles/zeros were fitted to the analog curve (max error 0.33 dB, 20 Hz - 20 kHz),
+  # which avoids the HF roll-off error of a plain bilinear transform.
+  riaa_biquad_48k:
+    type: Biquad
+    parameters:
+      type: Free
+      b0: 1.0
+      b1: -0.78516468
+      b2: -0.14149943
+      a1: -1.74730658
+      a2: 0.74891661
+
+  subsonic:
+    type: Biquad
+    parameters:
+      type: Highpass
+      freq: 35
+      q: 0.707
+
+pipeline:
+  - type: Filter
+    channel: 0
+    names:
+      - preamp
+      - riaa_biquad_48k
+      - subsonic
+  - type: Filter
+    channel: 1
+    names:
+      - preamp
+      - riaa_biquad_48k
+      - subsonic

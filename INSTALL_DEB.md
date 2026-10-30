@@ -12,6 +12,7 @@ Related guides: [Updating](UPDATING_DEB.md) · [Uninstalling](UNINSTALL_DEB.md) 
 | `/opt/beatnik-hardware-api/camilladsp/` | Bundled CamillaDSP configs; copied on start to `/var/lib/beatnik-hardware-api/camilladsp` (existing files are kept) |
 | `/etc/systemd/system/beatnik-hardware.service` | systemd unit (runs `/usr/bin/node dist/server.js` as root) |
 | `/etc/systemd/system/camilladsp.service` | CamillaDSP unit, using `/usr/local/bin/camilladsp` and the config in `/var/lib/beatnik-hardware-api/camilladsp/configs/client_config.yml` |
+| `/etc/systemd/system/camilladsp-preamp.service` | Preamp CamillaDSP unit (port 1235), using the config in `/var/lib/beatnik-hardware-api/camilladsp/preamp/client_config.yml`; restarted by the preamp config API |
 
 CamillaDSP itself must be installed at `/usr/local/bin/camilladsp`; the package only provides its service and configs. Without the binary, `camilladsp.service` keeps restarting but the API still works.
 

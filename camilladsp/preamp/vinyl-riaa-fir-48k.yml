@@ -1,0 +1,52 @@
+devices:
+  samplerate: 48000  # Native rate of the HiFiBerry ADC, no resampling needed
+  chunksize: 1024
+  capture:
+    type: Alsa
+    channels: 2
+    device: "hw:1,0"  # HiFiBerry DAC+ADC Pro
+    format: S32LE
+  playback:
+    type: File
+    channels: 2
+    filename: "/tmp/snap-line-in" # Snapserver source must use sampleformat 48000:16:2
+    format: S16LE
+
+filters:
+  preamp:
+    type: Gain
+    parameters:
+      # Overall gain of ~47.5 dB at 1 kHz (incl. the FIR's +10.8 dB at 1 kHz)
+      gain: 36.7
+      inverted: false
+      mute: false
+
+  # Minimum phase RIAA FIR (3157 taps, 48 kHz) from Scott Wurcer's digital RIAA article,
+  # Linear Audio Volume 10: https://linearaudio.net/test-waveforms-scott-wurcers-digital-riaa-article-volume-10
+  riaa_fir_48k:
+    type: Conv
+    parameters:
+      type: Wav
+      filename: "/var/lib/beatnik-hardware-api/camilladsp/coeffs/min_phase_FIR_RIAA_48k.wav"
+      channel: 0
+
+  subsonic:
+    type: Biquad
+    parameters:
+      type: Highpass
+      freq: 35
+      q: 0.707
+
+pipeline:
+  - type: Filter
+    channel: 0
+    names:
+      - preamp
+      - riaa_fir_48k
+      - subsonic
+  - type: Filter
+    channel: 1
+    names:
+      - preamp
+      - riaa_fir_48k
+      - subsonic

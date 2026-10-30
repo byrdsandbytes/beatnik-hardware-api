@@ -7,6 +7,16 @@ export async function updateRoutes(fastify: FastifyInstance) {
     return { busy: updateService.isBusy(), targets: updateService.getStatus() };
   });
 
+  // Installed versions of api, bleno and controller
+  fastify.get('/versions', async (request, reply) => {
+    try {
+      return { versions: await updateService.getVersions() };
+    } catch (error) {
+      request.log.error(error);
+      return reply.code(500).send({ error: 'Failed to read versions' });
+    }
+  });
+
   // Start an update in the background: bleno | controller | api | all
   fastify.post<{ Params: { target: string } }>('/:target', async (request, reply) => {
     const { target } = request.params;

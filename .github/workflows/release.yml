@@ -31,7 +31,7 @@ jobs:
           mkdir -p $ROOT/opt/beatnik-hardware-api $ROOT/etc/systemd/system $ROOT/DEBIAN
           cp -r dist camilladsp node_modules package.json $ROOT/opt/beatnik-hardware-api/
 
-          cp beatnik-hardware.service camilladsp.service $ROOT/etc/systemd/system/
+          cp beatnik-hardware.service camilladsp.service camilladsp-preamp.service $ROOT/etc/systemd/system/
 
           cat > $ROOT/DEBIAN/control <<EOF
           Package: beatnik-hardware-api
@@ -53,6 +53,8 @@ jobs:
           # CamillaDSP binary is not part of this package; do not fail the install without it
           systemctl enable camilladsp.service || true
           systemctl restart camilladsp.service || true
+          systemctl enable camilladsp-preamp.service || true
+          systemctl restart camilladsp-preamp.service || true
           EOF
 
           cat > $ROOT/DEBIAN/prerm <<'EOF'
@@ -61,6 +63,8 @@ jobs:
           systemctl disable beatnik-hardware.service || true
           systemctl stop camilladsp.service || true
           systemctl disable camilladsp.service || true
+          systemctl stop camilladsp-preamp.service || true
+          systemctl disable camilladsp-preamp.service || true
           EOF
           chmod 755 $ROOT/DEBIAN/postinst $ROOT/DEBIAN/prerm
 
