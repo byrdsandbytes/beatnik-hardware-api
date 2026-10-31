@@ -13,6 +13,7 @@ Related guides: [Updating](UPDATING_DEB.md) · [Uninstalling](UNINSTALL_DEB.md) 
 | `/etc/systemd/system/beatnik-hardware.service` | systemd unit (runs `/usr/bin/node dist/server.js` as root) |
 | `/etc/systemd/system/camilladsp.service` | CamillaDSP unit, using `/usr/local/bin/camilladsp` and the config in `/var/lib/beatnik-hardware-api/camilladsp/configs/client_config.yml` |
 | `/etc/systemd/system/camilladsp-preamp.service` | Preamp CamillaDSP unit (port 1235), using the config in `/var/lib/beatnik-hardware-api/camilladsp/preamp/client_config.yml`; restarted by the preamp config API |
+| `/usr/bin/beatnik-stream-dsp` | Wrapper that runs a Snapserver source through its own CamillaDSP instance; installed as `beatnik-dsp-airplay`, `beatnik-dsp-airplay2` and `beatnik-dsp-spotify` (symlinks) for use as Snapserver `source` executables, see [README](README.md#per-stream-camilladsp) |
 
 CamillaDSP itself must be installed at `/usr/local/bin/camilladsp`; the package only provides its service and configs. Without the binary, `camilladsp.service` keeps restarting but the API still works.
 

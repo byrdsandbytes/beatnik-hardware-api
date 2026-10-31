@@ -26,9 +26,29 @@ Base URL: `http://localhost:3000`
 | GET | `/camilla/preamp/configs` | List preamp CamillaDSP config files (`/var/lib/beatnik-hardware-api/camilladsp/preamp`) |
 | GET | `/camilla/preamp/configs/default` | Get the active preamp config |
 | PUT | `/camilla/preamp/configs/default` | Set the active preamp config and restart the preamp service: `{ "fileName": "vinyl-riaa-static-48k.yml" }` |
+| GET | `/camilla/streams` | List the per-stream CamillaDSP instances (`airplay`, `airplay2`, `spotify`) with their active config |
+| GET | `/camilla/streams/:stream/configs` | List config files of a stream (`/var/lib/beatnik-hardware-api/camilladsp/streams/<stream>`) |
+| GET | `/camilla/streams/:stream/configs/default` | Get the active config of a stream |
+| PUT | `/camilla/streams/:stream/configs/default` | Set the active config of a stream and reload its CamillaDSP: `{ "fileName": "stream-3-band-eq-44k.yml" }` |
 | POST | `/reboot` | Reboot the Pi |
 
-`/status` also returns `preampConfigFile` (`null` if no preamp instance is set up). The preamp instance works like the main one: the active config is the symlink `client_config.yml` in its config folder, which the preamp service must use as its config file. HAT settings are not applied to it.
+`/status` also returns `streamConfigFiles` (active config per stream, `null` if missing) and `preampConfigFile` (`null` if no preamp instance is set up). The preamp instance works like the main one: the active config is the symlink `client_config.yml` in its config folder, which the preamp service must use as its config file. HAT settings are not applied to it.
+
+#### Per-stream CamillaDSP
+Each Snapserver source can run through its own CamillaDSP instance before it reaches Snapserver. The Debian package installs the wrapper `/usr/bin/beatnik-stream-dsp` as `beatnik-dsp-airplay`, `beatnik-dsp-airplay2` and `beatnik-dsp-spotify` (see [scripts/](scripts)). The wrapper starts `shairport-sync` / `librespot` with Snapserver's arguments and pipes its audio through CamillaDSP (`Stdin` → `Stdout`, websocket ports 1236 / 1237 / 1238), so metadata keeps working. Without CamillaDSP or the config it runs the player unfiltered. Point the Snapserver sources at the wrapper:
+
+```ini
+[stream]
+source = airplay:///usr/bin/beatnik-dsp-airplay?name=AirPlay&devicename=Beatnik-Airplay1&port=5000
+
+[stream]
+source = airplay:///usr/bin/beatnik-dsp-airplay2?name=AirPlay2&devicename=Beatnik-Airplay2&port=7000
+
+[stream]
+source = spotify:///usr/bin/beatnik-dsp-spotify?name=Spotify&devicename=Beatnik-Spotify
+```
+
+Stream configs must use `Stdin` capture and `Stdout` playback with `S16LE` at 44100 Hz (the AirPlay/Spotify source format); the bundled defaults are copied to every stream directory. A config change is applied with `SIGHUP` to the running instance, no Snapserver restart needed.
 
 ### System (`/api/system`)
 | Method | Path | Description |

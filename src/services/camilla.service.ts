@@ -2,7 +2,7 @@ import fs from 'fs/promises';
 import { constants as fsConstants } from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
-import { exec } from 'child_process';
+import { exec, execFile } from 'child_process';
 import { promisify } from 'util';
 import { SUPPORTED_HATS } from '../types/hats';
 
@@ -20,6 +20,17 @@ const PREAMP_CONFIG_DIR = process.env.CAMILLA_PREAMP_CONFIG_DIR || path.join(CAM
 const PREAMP_CONFIG_PATH = process.env.CAMILLA_PREAMP_CONFIG_PATH || path.join(PREAMP_CONFIG_DIR, 'client_config.yml');
 const PREAMP_SERVICE_NAME = process.env.CAMILLA_PREAMP_SERVICE_NAME || 'camilladsp-preamp';
 const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
+
+// Per-stream CamillaDSP instances (one per Snapserver source), started by the beatnik-stream-dsp wrapper
+// and not by systemd. Names must match the wrapper's stream names.
+const STREAMS_CONFIG_DIR = process.env.CAMILLA_STREAMS_CONFIG_DIR || path.join(CAMILLA_HOME, 'streams');
+export const STREAM_NAMES = ['airplay', 'airplay2', 'spotify'] as const;
+export type StreamName = (typeof STREAM_NAMES)[number];
+
+export function isStreamName(value: string): value is StreamName {
+    return (STREAM_NAMES as readonly string[]).includes(value);
+}
 
 async function copyMissing(sourceDir: string, targetDir: string): Promise<void> {
     await fs.mkdir(targetDir, { recursive: true });
@@ -52,6 +63,8 @@ export async function seedCamillaConfigs(): Promise<void> {
         ['configs', CAMILLA_CONFIG_DIR],
         ['preamp', PREAMP_CONFIG_DIR],
         ['coeffs', path.join(CAMILLA_HOME, 'coeffs')],
+        // Every stream starts with the same bundled profiles
+        ...STREAM_NAMES.map((name): [string, string] => ['streams/default', path.join(STREAMS_CONFIG_DIR, name)]),
     ];
 
     for (const [name, target] of targets) {
@@ -62,7 +75,8 @@ export async function seedCamillaConfigs(): Promise<void> {
 export interface CamillaInstanceOptions {
     configDir: string;
     configPath: string;
-    serviceName: string;
+    // Instances without a systemd unit are reloaded by signalling their process
+    serviceName?: string;
 }
 
 export const MAIN_CAMILLA_OPTIONS: CamillaInstanceOptions = {
@@ -77,10 +91,17 @@ export const PREAMP_CAMILLA_OPTIONS: CamillaInstanceOptions = {
     serviceName: PREAMP_SERVICE_NAME,
 };
 
+export const STREAM_CAMILLA_OPTIONS = Object.fromEntries(
+    STREAM_NAMES.map((name) => {
+        const configDir = path.join(STREAMS_CONFIG_DIR, name);
+        return [name, { configDir, configPath: path.join(configDir, 'client_config.yml') }];
+    })
+) as Record<StreamName, CamillaInstanceOptions>;
+
 export class CamillaService {
     private readonly configDir: string;
     private readonly configPath: string;
-    private readonly serviceName: string;
+    private readonly serviceName?: string;
     private readonly activeConfigFileName: string;
 
     constructor(options: CamillaInstanceOptions = MAIN_CAMILLA_OPTIONS) {
@@ -90,7 +111,33 @@ export class CamillaService {
         this.activeConfigFileName = path.basename(options.configPath);
     }
 
+    /**
+     * Makes the instance pick up the active config: systemd instances are restarted,
+     * stream instances (child of a Snapserver source) reload it on SIGHUP.
+     */
+    async reload(): Promise<void> {
+        if (this.serviceName) {
+            return this.restartService();
+        }
+
+        try {
+            const escapedPath = this.configPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            // execFile avoids a shell whose command line would also match the pattern
+            await execFileAsync('sudo', ['pkill', '-HUP', '-f', '--', `camilladsp .*${escapedPath}$`]);
+        } catch (error: any) {
+            // pkill exits with 1 when no process matches: the stream is not running and loads the config on start
+            if (error?.code !== 1) {
+                console.error(`Failed to reload CamillaDSP config ${this.configPath}:`, error);
+                throw new Error('Failed to reload CamillaDSP');
+            }
+        }
+    }
+
     async restartService(): Promise<void> {
+        if (!this.serviceName) {
+            throw new Error('CamillaDSP instance has no systemd service');
+        }
+
         try {
             await execAsync(`sudo systemctl restart ${this.serviceName}`);
         } catch (error) {

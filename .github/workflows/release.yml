@@ -28,10 +28,16 @@ jobs:
         run: |
           VERSION=$(node -p "require('./package.json').version")
           ROOT=package_root
-          mkdir -p $ROOT/opt/beatnik-hardware-api $ROOT/etc/systemd/system $ROOT/DEBIAN
+          mkdir -p $ROOT/opt/beatnik-hardware-api $ROOT/etc/systemd/system $ROOT/usr/bin $ROOT/DEBIAN
           cp -r dist camilladsp node_modules package.json $ROOT/opt/beatnik-hardware-api/
 
           cp beatnik-hardware.service camilladsp.service camilladsp-preamp.service $ROOT/etc/systemd/system/
+
+          # Snapserver stream sources with per-stream CamillaDSP; the wrapper picks its stream from its own name
+          install -m 755 scripts/beatnik-stream-dsp $ROOT/usr/bin/beatnik-stream-dsp
+          for stream in airplay airplay2 spotify; do
+            ln -s beatnik-stream-dsp $ROOT/usr/bin/beatnik-dsp-$stream
+          done
 
           cat > $ROOT/DEBIAN/control <<EOF
           Package: beatnik-hardware-api

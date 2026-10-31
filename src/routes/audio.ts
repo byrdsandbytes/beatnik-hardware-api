@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import { ConfigService } from '../services/config.service';
-import { CamillaService, PREAMP_CAMILLA_OPTIONS } from '../services/camilla.service';
+import { CamillaService, PREAMP_CAMILLA_OPTIONS, STREAM_CAMILLA_OPTIONS, STREAM_NAMES, isStreamName, StreamName } from '../services/camilla.service';
 import { DetectionService } from '../services/detection.service';
 import { SUPPORTED_HATS } from '../types/hats';
 import { exec } from 'child_process';
@@ -8,6 +8,9 @@ import { exec } from 'child_process';
 const configService = new ConfigService();
 const camillaService = new CamillaService();
 const preampCamillaService = new CamillaService(PREAMP_CAMILLA_OPTIONS);
+const streamCamillaServices = Object.fromEntries(
+  STREAM_NAMES.map((name) => [name, new CamillaService(STREAM_CAMILLA_OPTIONS[name])])
+) as Record<StreamName, CamillaService>;
 const detectionService = new DetectionService();
 
 export async function audioRoutes(fastify: FastifyInstance) {
@@ -109,16 +112,89 @@ export async function audioRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // Per-stream CamillaDSP instances (camilladsp/streams/<stream>), one per Snapserver source.
+  // Same logic as the preamp; a config change is applied by reloading the running instance.
+
+  // GET /api/hardware/camilla/streams
+  fastify.get('/camilla/streams', async () => {
+    const streams = await Promise.all(
+      STREAM_NAMES.map(async (name) => ({
+        name,
+        configFile: await streamCamillaServices[name].getDefaultConfig().catch(() => null)
+      }))
+    );
+    return { streams };
+  });
+
+  // GET /api/hardware/camilla/streams/:stream/configs
+  fastify.get<{ Params: { stream: string } }>('/camilla/streams/:stream/configs', async (request, reply) => {
+    const { stream } = request.params;
+    if (!isStreamName(stream)) {
+      return reply.code(404).send({ error: 'Unknown stream' });
+    }
+
+    try {
+      const configs = await streamCamillaServices[stream].listAvailableConfigs();
+      return { configs };
+    } catch (error) {
+      request.log.error(error);
+      return reply.code(500).send({ error: `Failed to list ${stream} CamillaDSP configs` });
+    }
+  });
+
+  // GET /api/hardware/camilla/streams/:stream/configs/default
+  fastify.get<{ Params: { stream: string } }>('/camilla/streams/:stream/configs/default', async (request, reply) => {
+    const { stream } = request.params;
+    if (!isStreamName(stream)) {
+      return reply.code(404).send({ error: 'Unknown stream' });
+    }
+
+    try {
+      const fileName = await streamCamillaServices[stream].getDefaultConfig();
+      return { fileName };
+    } catch (error) {
+      request.log.error(error);
+      return reply.code(500).send({ error: `Failed to get default ${stream} CamillaDSP config` });
+    }
+  });
+
+  // PUT /api/hardware/camilla/streams/:stream/configs/default
+  // Body: { fileName: 'stream-3-band-eq-44k.yml' }
+  fastify.put<{ Params: { stream: string }; Body: { fileName: string } }>('/camilla/streams/:stream/configs/default', async (request, reply) => {
+    const { stream } = request.params;
+    if (!isStreamName(stream)) {
+      return reply.code(404).send({ error: 'Unknown stream' });
+    }
+
+    const { fileName } = request.body || {};
+    if (!fileName || typeof fileName !== 'string') {
+      return reply.code(400).send({ error: 'fileName is required' });
+    }
+
+    try {
+      await streamCamillaServices[stream].setDefaultConfig(fileName);
+      await streamCamillaServices[stream].reload();
+      return { status: 'success', stream, fileName, camillaReloaded: true };
+    } catch (error) {
+      request.log.error(error);
+      const message = error instanceof Error ? error.message : `Failed to set default ${stream} CamillaDSP config`;
+      return reply.code(400).send({ error: message });
+    }
+  });
+
   // GET /api/hardware/status
   // Gibt zurück: Was ist eingestellt? Was wurde erkannt?
   fastify.get('/status', async () => {
-    const [active, detected, eepromDisabled, camillaConfigFile, preampConfigFile] = await Promise.all([
+    const [active, detected, eepromDisabled, camillaConfigFile, preampConfigFile, streamConfigFiles] = await Promise.all([
       configService.getActiveConfig(),
       detectionService.detectConnectedHat(),
       configService.isEepromReadDisabled(),
       camillaService.getDefaultConfig(),
       // Preamp is optional, a missing setup must not break the status route
-      preampCamillaService.getDefaultConfig().catch(() => null)
+      preampCamillaService.getDefaultConfig().catch(() => null),
+      Promise.all(
+        STREAM_NAMES.map(async (name) => [name, await streamCamillaServices[name].getDefaultConfig().catch(() => null)] as const)
+      ).then((entries) => Object.fromEntries(entries))
     ]);
 
     return {
@@ -127,7 +203,8 @@ export async function audioRoutes(fastify: FastifyInstance) {
       isMatch: active?.id === detected?.id,
       eepromReadDisabled: eepromDisabled,
       camillaConfigFile,
-      preampConfigFile
+      preampConfigFile,
+      streamConfigFiles
     };
   });
 

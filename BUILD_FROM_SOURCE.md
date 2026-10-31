@@ -73,13 +73,14 @@ Anything that needs `systemctl`, `docker`, or Avahi (Snapcast, update routes, mD
 | Variable | Default | Purpose |
 |---|---|---|
 | `CONFIG_PATH` | `/boot/firmware/config.txt` | Raspberry Pi boot config |
-| `CAMILLA_HOME` | `/var/lib/beatnik-hardware-api/camilladsp` | Writable CamillaDSP directory (`configs`, `preamp`, `coeffs`). On start, missing files are copied from the bundled `camilladsp/` folder; existing files are never overwritten |
+| `CAMILLA_HOME` | `/var/lib/beatnik-hardware-api/camilladsp` | Writable CamillaDSP directory (`configs`, `preamp`, `streams`, `coeffs`). On start, missing files are copied from the bundled `camilladsp/` folder; existing files are never overwritten |
 | `CAMILLA_CONFIG_DIR` | `<CAMILLA_HOME>/configs` | CamillaDSP config directory |
 | `CAMILLA_CONFIG_PATH` | `<CAMILLA_CONFIG_DIR>/client_config.yml` | Active CamillaDSP config (symlink) |
 | `CAMILLA_SERVICE_NAME` | `camilladsp` | systemd service restarted after config changes |
 | `CAMILLA_PREAMP_CONFIG_DIR` | `<CAMILLA_HOME>/preamp` | Preamp CamillaDSP config directory |
 | `CAMILLA_PREAMP_CONFIG_PATH` | `<CAMILLA_PREAMP_CONFIG_DIR>/client_config.yml` | Active preamp config (symlink) |
 | `CAMILLA_PREAMP_SERVICE_NAME` | `camilladsp-preamp` | systemd service restarted after preamp config changes |
+| `CAMILLA_STREAMS_CONFIG_DIR` | `<CAMILLA_HOME>/streams` | Per-stream CamillaDSP config directories (`<stream>/client_config.yml`) |
 | `AVAHI_SERVICE_DIR` | `/etc/avahi/services` | Where the mDNS service file is written |
 | `BEATNIK_USER` | `beatnik` | User that owns the Beatnik repositories (update routes) |
 | `BEATNIK_HOME` | `/home/<BEATNIK_USER>` | Directory containing the Beatnik repositories (update routes) |

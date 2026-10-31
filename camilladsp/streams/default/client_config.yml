@@ -1,0 +1,16 @@
+devices:
+  samplerate: 44100 # AirPlay and Spotify sources output 44100:16:2
+  chunksize: 1024
+  capture:
+    type: Stdin # Audio from the player (shairport-sync / librespot)
+    channels: 2
+    format: S16LE
+  playback:
+    type: Stdout # Audio to Snapserver
+    channels: 2
+    format: S16LE
+
+# Bypass: audio passes through unchanged
+filters: {}
+
+pipeline: []

@@ -1,0 +1,51 @@
+#!/bin/bash
+# Starts a Snapserver stream source with its audio run through its own CamillaDSP instance.
+#
+# Install under one name per stream (symlinks to this script) and point the Snapserver source at it:
+#   beatnik-dsp-airplay   -> shairport-sync, CamillaDSP websocket port 1236
+#   beatnik-dsp-airplay2  -> shairport-sync, CamillaDSP websocket port 1237
+#   beatnik-dsp-spotify   -> librespot,      CamillaDSP websocket port 1238
+#   source = airplay:///usr/bin/beatnik-dsp-airplay?name=AirPlay&devicename=Beatnik-Airplay1&port=5000
+#
+# Snapserver passes its usual player arguments; the player's stdout (raw PCM) is piped through
+# CamillaDSP, whose stdout becomes the audio Snapserver reads. The player stays the main process,
+# so Snapserver's process handling and metadata keep working.
+
+CAMILLA_HOME="${CAMILLA_HOME:-/var/lib/beatnik-hardware-api/camilladsp}"
+CAMILLA_BIN="${CAMILLA_BIN:-/usr/local/bin/camilladsp}"
+
+stream="${0##*/}"
+stream="${stream#beatnik-dsp-}"
+
+case "$stream" in
+    airplay)  player=shairport-sync; port=1236 ;;
+    airplay2) player=shairport-sync; port=1237 ;;
+    spotify)  player=librespot;      port=1238 ;;
+    *)
+        echo "beatnik-stream-dsp: unknown stream '$stream' (call it as beatnik-dsp-airplay, -airplay2 or -spotify)" >&2
+        exit 1
+        ;;
+esac
+
+player_path="$(command -v "$player" || true)"
+if [ -z "$player_path" ]; then
+    echo "beatnik-stream-dsp: $player not found" >&2
+    exit 1
+fi
+
+config="$CAMILLA_HOME/streams/$stream/client_config.yml"
+
+# Snapserver also calls the player for its version/help text, which must not be filtered
+for arg in "$@"; do
+    case "$arg" in
+        --version|-V|--help|-h) exec "$player_path" "$@" ;;
+    esac
+done
+
+if [ ! -x "$CAMILLA_BIN" ] || [ ! -r "$config" ]; then
+    echo "beatnik-stream-dsp: CamillaDSP ($CAMILLA_BIN) or config ($config) missing, running $player without DSP" >&2
+    exec "$player_path" "$@"
+fi
+
+# CamillaDSP gets EOF and exits when the player stops; its stdout is still Snapserver's pipe
+exec "$player_path" "$@" > >(exec "$CAMILLA_BIN" --address 0.0.0.0 --port "$port" "$config")
