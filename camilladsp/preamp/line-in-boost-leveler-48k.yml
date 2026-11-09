@@ -17,13 +17,13 @@ filters:
   boost_gain_l:
     type: Gain
     parameters:
-      gain: 20.0 # Boosts -78.2dB peak to ~-10dB
+      gain: 20.0 
       inverted: false
       mute: false
   boost_gain_r:
     type: Gain
     parameters:
-      gain: 20.0 # Boosts -78.2dB peak to ~-10dB
+      gain: 20.0 
       inverted: false
       mute: false
   limiter:
